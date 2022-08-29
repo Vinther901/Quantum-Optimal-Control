@@ -25,17 +25,19 @@ class Plotter():
     
     def plot_activation_func(self):
         assert self.activation_func
-        plt.plot(self.times,self.activation_func(self.times).detach(),'b.')
-        plt.ylim(0,None)
+        fig, ax = plt.subplots()
+        ax.plot(self.times,self.activation_func(self.times).detach(),'b')
+        ax.set_ylim(0,None)
         try:
-            plt.plot(self.times, self.get_control().detach()+0.5)
-            plt.plot(self.times, self.envelope_func().detach()+0.5)
-            plt.plot(self.times, -self.envelope_func().detach()+0.5)
+            ax.plot(self.times, self.get_control().detach()+0.5)
+            ax.plot(self.times, self.envelope_func().detach()+0.5)
+            ax.plot(self.times, -self.envelope_func().detach()+0.5)
         except:
+            print("Didn't plot pulse in .plot_activation_func")
             pass
         return
     
-    def plot_occupancy(self): #FIX!
+    def plot_occupancy(self):
         alphas = self.activation_func(self.times).detach()
         Hs = self.get_H(alphas.flip(0),self.get_control().flip(0)).detach()
         occ = t.zeros((3,Hs.shape[0]))
@@ -45,8 +47,8 @@ class Plotter():
         for i, mat in enumerate(exp_mat.flip(0)):
             wavefunc = mat@wavefunc
             
-            occ[0,i] = t.square(t.abs(eigvecs[i,:,0].unsqueeze(1).adjoint()@wavefunc))
-            occ[1,i] = t.square(t.abs(eigvecs[i,:,1].unsqueeze(1).adjoint()@wavefunc))
+            occ[0,i] = t.square(t.abs(eigvecs[i,:,[0]].adjoint()@wavefunc))
+            occ[1,i] = t.square(t.abs(eigvecs[i,:,[1]].adjoint()@wavefunc))
         occ[2] = 1-occ.sum(0)
 
         fig, ax = plt.subplots()

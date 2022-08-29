@@ -1,0 +1,20 @@
+{
+    'T': 30,
+    'NTrot': 500,
+    'q_max': 10,
+    'lr': 1e-2,
+    'Scheduler': False,
+
+// //System
+//     'phi_ext': phi_ext,
+//     'EJ': EJ,
+//     'EC': EC
+
+//Initialization
+    'decline_end':4.8758,
+    'ascend_start':25.0227,
+    'level':0.8904,
+    'envelope_amp':0.1262,
+    'detuning':0.9872,
+    'phase':0.3473
+    }

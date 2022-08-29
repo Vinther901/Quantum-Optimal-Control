@@ -42,3 +42,22 @@ class RampDownUpPulse():
     
     def restrict_time(self, time_point):
         return self.Softplus(time_point) - self.Softplus(time_point - self.T)
+
+class FreePulse():
+    def __init__(self):
+        self.pulse = t.nn.parameter.Parameter(self.init_pulse())
+        self.alphas = t.ones(self.NTrot)
+        super().__init__()
+    
+    def init_pulse(self):
+        # return t.ones(self.NTrot)
+        return 1.5*t.pi/(2*self.T)*t.sin((self.eigvals[1] - self.eigvals[0])*self.times-0.1*t.pi)
+    
+    def get_control(self):
+        return self.pulse
+    
+    def activation_func(self,time):
+        return self.alphas
+    
+    def envelope_func(self):
+        return t.zeros(self.NTrot)
