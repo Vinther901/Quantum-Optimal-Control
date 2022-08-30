@@ -51,7 +51,7 @@ class FreePulse():
     
     def init_pulse(self):
         # return t.ones(self.NTrot)
-        return 1.5*t.pi/(2*self.T)*t.sin((self.eigvals[1] - self.eigvals[0])*self.times-0.1*t.pi)
+        return 5*t.pi/(2*self.T)*t.sin((self.eigvals[1] - self.eigvals[0])*self.times-0.1*t.pi)**2
     
     def get_control(self):
         return self.pulse

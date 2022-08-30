@@ -15,7 +15,8 @@ class Trainer():
         else:
             self.step = self.step_without_scheduler
 
-        self.loss_funcs = [self.C1_state,self.C4,self.C5,self.C6]
+        # self.loss_funcs = [self.C1_state,self.C4,self.C5,self.C6,self.C7,self.C8]
+        self.prepare_loss_funcs()
 
         N_loss_funcs = len(self.loss_funcs)
         self.loss_weights = t.ones(N_loss_funcs)/N_loss_funcs
@@ -39,16 +40,24 @@ class Trainer():
     #     return t.square(self.ascend_start - self.decline_end)
     
     def C4(self,U):
-        return t.sum(t.square(self.diff@self.get_control()))
+        return t.sum(t.square(self.diff@self.get_control()))/self.dt
     
     def C5(self,U):
-        return t.sum(t.square(self.ddiff@self.get_control()))
+        return t.sum(t.square(self.ddiff@self.get_control()))/self.dt
 
     def C6(self,U):
         return t.sum(t.square(self.get_control())*self.dt)
+
+    def C7(self,U):
+        occ = self.get_occupancy(indices=[1])
+        return 1-occ[0].mean()
+    
+    def C8(self,U):
+        occ = self.get_occupancy(indices=[0,1])
+        return occ[2].mean()
     
     def loss_func(self,U):
-        self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])/self.stored_losses[:,0]
+        self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]
         self.update_weights()
         return t.sum(self.loss_weights*self.losses)
     
@@ -113,4 +122,7 @@ class Trainer():
         
         print(f"Ended at step: {self.N_epoch}, with loss: {loss.item()} and runtime: {time() - start_time}")
 
+    def prepare_loss_funcs(self):
+        string = "[self." + ", self.".join(self.params_dict['loss_funcs']) + "]"
+        exec("self.loss_funcs = " + string)
     

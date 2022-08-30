@@ -34,6 +34,8 @@ class Periodic_System():
 
         # self.ddiff = 1/(self.dt**2)*(t.diag(-2*t.ones(self.NTrot)) + t.diag(ones,1) + t.diag(ones,-1))    
         self.ddiff = t.diag(-2*t.ones(self.NTrot)) + t.diag(ones,1) + t.diag(ones,-1)
+        self.ddiff[0] = 0
+        self.ddiff[-1] = 0
 
         self.prepare_KinE()
         self.set_eig_H()
@@ -47,3 +49,25 @@ class Periodic_System():
         eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=t.tensor([alpha])).squeeze())
         self.eigvals = eigvals
         self.eigvecs = eigvecs
+    
+    def get_occupancy(self, indices = [0,1]):
+        alphas = self.activation_func(self.times)
+        occ = t.zeros((len(indices)+1,self.NTrot))
+        # try:
+        exp_mat = self.latest_matrix_exp
+        # except:
+        #     print("No self.latest_matrix_exp")
+        #     Hs = self.get_H(alphas.flip(0),self.get_control().flip(0))
+        #     exp_mat = t.matrix_exp(-1j*Hs*self.dt)
+
+        wavefunc = self.eigvecs[:,[0]]
+        eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas))
+        for i, mat in enumerate(exp_mat.flip(0)):
+            wavefunc = mat@wavefunc
+            for j, ind in enumerate(indices):
+                occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
+                # occ[ind,i] = eigvecs[i,:,[ind]].adjoint()@wavefunc
+            
+        occ = t.square(occ)
+        occ[len(indices)] = 1-occ.sum(0)
+        return occ

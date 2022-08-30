@@ -37,19 +37,21 @@ class Plotter():
             pass
         return
     
-    def plot_occupancy(self):
-        alphas = self.activation_func(self.times).detach()
-        Hs = self.get_H(alphas.flip(0),self.get_control().flip(0)).detach()
-        occ = t.zeros((3,Hs.shape[0]))
-        exp_mat = t.matrix_exp(-1j*Hs*self.dt)
-        wavefunc = self.eigvecs[:,0]
-        eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas))
-        for i, mat in enumerate(exp_mat.flip(0)):
-            wavefunc = mat@wavefunc
-            
-            occ[0,i] = t.square(t.abs(eigvecs[i,:,[0]].adjoint()@wavefunc))
-            occ[1,i] = t.square(t.abs(eigvecs[i,:,[1]].adjoint()@wavefunc))
-        occ[2] = 1-occ.sum(0)
-
+    def plot_occupancy(self,indices=[0,1]):
+        occ = self.get_occupancy(indices).detach()
         fig, ax = plt.subplots()
         ax.plot(self.times,occ.T)
+    
+    def plot_potential(self,alpha=1):
+        phi = t.linspace(-t.pi,t.pi,self.NHilbert)
+        eigvals, eigvecs = t.linalg.eigh(self.get_H(t.tensor([alpha])).squeeze())
+
+        fig, ax = plt.subplots()
+        potential = -2*self.EJ*t.cos(phi) + alpha*self.EJ*t.cos(2*phi - self.phi_ext)
+        ax.plot(phi, potential,'k')
+        indices = [0,1,2,3]
+        for i in indices:
+            eigvec = t.fft.fftshift(t.fft.ifft(eigvecs[:,i])*t.sqrt(t.tensor(self.NHilbert)))
+            ax.fill_between(phi,t.abs(eigvec)**2*self.NHilbert+eigvals[i],eigvals[i],label='n=%d'%i,edgecolor='k',alpha=0.8)
+        ax.set_ylim(potential.min()*1.01,potential[self.q_max]*0.95)
+        return
