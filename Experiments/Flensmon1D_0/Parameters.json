@@ -4,7 +4,7 @@
 "q_max": 	10,
 "lr": 		1e-2,
 "Scheduler":	false,
-"loss_funcs":	["C1_state","C7"],
+"loss_funcs":	["C1_state","C4","C5","C7","C8"],
 
 "_SystemComments":"The following are the specifications for the 1DFlensmon, with respectively: 0.001*pi, 2*pi*10GHz and EJ/400",
 

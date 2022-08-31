@@ -29,11 +29,11 @@ class Periodic_System():
 
         print("Right now the dimensions of the derivatives are not correct.")
         # self.diff = 1/(2*self.dt)*(t.diag(ones,1)+t.diag(-ones,-1))
-        self.diff = t.diag(-t.ones(self.NTrot)) + t.diag(ones,1)
+        self.diff = 1/self.dt*(t.diag(-t.ones(self.NTrot)) + t.diag(ones,1))
         self.diff[-1,-1] = 0
 
-        # self.ddiff = 1/(self.dt**2)*(t.diag(-2*t.ones(self.NTrot)) + t.diag(ones,1) + t.diag(ones,-1))    
-        self.ddiff = t.diag(-2*t.ones(self.NTrot)) + t.diag(ones,1) + t.diag(ones,-1)
+        self.ddiff = 1/(self.dt**2)*(t.diag(-2*t.ones(self.NTrot)) + t.diag(ones,1) + t.diag(ones,-1))    
+        # self.ddiff = t.diag(-2*t.ones(self.NTrot)) + t.diag(ones,1) + t.diag(ones,-1)
         self.ddiff[0] = 0
         self.ddiff[-1] = 0
 

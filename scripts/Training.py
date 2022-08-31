@@ -40,21 +40,21 @@ class Trainer():
     #     return t.square(self.ascend_start - self.decline_end)
     
     def C4(self,U):
-        return t.sum(t.square(self.diff@self.get_control()))/self.dt
+        return t.mean(t.square(self.diff@self.get_control()))
     
     def C5(self,U):
-        return t.sum(t.square(self.ddiff@self.get_control()))/self.dt
+        return t.mean(t.square(self.ddiff@self.get_control()))
 
     def C6(self,U):
-        return t.sum(t.square(self.get_control())*self.dt)
+        return t.mean(t.square(self.get_control()))
 
     def C7(self,U):
-        occ = self.get_occupancy(indices=[1])
-        return 1-occ[0].mean()
+        self.occ = self.get_occupancy(indices=[0,1])
+        return 1 - self.occ[1].mean()
     
     def C8(self,U):
-        occ = self.get_occupancy(indices=[0,1])
-        return occ[2].mean()
+        # occ = self.get_occupancy(indices=[0,1])
+        return self.occ[2].mean()
     
     def loss_func(self,U):
         self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]

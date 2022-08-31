@@ -55,3 +55,16 @@ class Plotter():
             ax.fill_between(phi,t.abs(eigvec)**2*self.NHilbert+eigvals[i],eigvals[i],label='n=%d'%i,edgecolor='k',alpha=0.8)
         ax.set_ylim(potential.min()*1.01,potential[self.q_max]*0.95)
         return
+    
+    def plot_run(self):
+        fig, ax = plt.subplots(figsize=(15,10),ncols=3,nrows=2)
+        ax[0,0].plot(self.times, self.get_init_pulse())
+        
+
+        ax[0,1].plot(self.stored_weights.T)
+        ax[1,1].plot(self.stored_losses.T)
+        ax[1,1].set_yscale('log')
+
+        ax[0,2].plot(self.times, self.get_control().detach())
+        ax[1,2].plot(self.times, self.get_occupancy().detach().T)
+        # ax[1,2].plot()
