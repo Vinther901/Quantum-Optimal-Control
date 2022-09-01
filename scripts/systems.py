@@ -3,6 +3,7 @@ import torch as t
 
 class Periodic_System():
     def __init__(self):
+        self.ReLU = t.nn.ReLU()
         self.T = self.params_dict['T']
         self.NTrot = self.params_dict['NTrot']
         self.q_max = self.params_dict['q_max']
@@ -27,7 +28,7 @@ class Periodic_System():
 
         ones = t.ones(self.NTrot-1)
 
-        print("Right now the dimensions of the derivatives are not correct.")
+        # print("Right now the dimensions of the derivatives are not correct.")
         # self.diff = 1/(2*self.dt)*(t.diag(ones,1)+t.diag(-ones,-1))
         self.diff = 1/self.dt*(t.diag(-t.ones(self.NTrot)) + t.diag(ones,1))
         self.diff[-1,-1] = 0
@@ -39,6 +40,14 @@ class Periodic_System():
 
         self.prepare_KinE()
         self.set_eig_H()
+        ####################################################EXPERIMENTAL#
+        self.t1 = t.exp(-1j*self.dt*4*self.params_dict['EC']*q**2)
+        self.t2 = t.exp(-1j*self.dt*self.EJ*q)
+        t3 = t.matrix_exp(1j*self.dt*self.EJ*self.cos_mat)
+        self.t4, u4 = t.linalg.eig(t.matrix_exp(-1j*self.dt*self.EJ*self.cos2_mat))
+        self.t3 = t3@u4
+        self.u4_adj = u4.adjoint()
+        #################################################################
         super().__init__()
 
     def get_H(self,alphas=t.tensor([1]),control = t.tensor([0])):
@@ -71,3 +80,12 @@ class Periodic_System():
         occ = t.square(occ)
         occ[len(indices)] = 1-occ.sum(0)
         return occ
+    
+    # def restrict_time(self, time_point):
+    #     return self.Softplus(time_point) - self.Softplus(time_point - self.T)
+    
+    def restrict_output(self,inp,Min,Max):
+        return self.ReLU(inp - Min) - self.ReLU(inp - Max)
+    
+    # def custom_Hardsigmoid(self,x): #restrict linearly to [0,1]
+    #     return self.Hardsigmoid(6*(x-0.5)) #Perhaps should be restricted to [0.5,1]

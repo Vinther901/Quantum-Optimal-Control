@@ -43,7 +43,7 @@ class Trainer():
         return t.mean(t.square(self.diff@self.get_control()))
     
     def C5(self,U):
-        return t.mean(t.square(self.ddiff@self.get_control()))
+        return t.mean(t.abs(self.ddiff@self.get_control()))
 
     def C6(self,U):
         return t.mean(t.square(self.get_control()))
@@ -102,7 +102,8 @@ class Trainer():
     
     def lr_func(self,epoch):
         # return np.log(epoch+1)
-        return 10*epoch/(300 + epoch)
+        tmp = epoch - 4
+        # return max(0.005,10*(epoch-4)/(300 + (epoch-4)))
     
     def minimize(self, threshold, max_steps):
         from time import time

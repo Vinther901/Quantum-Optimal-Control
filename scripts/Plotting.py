@@ -56,15 +56,50 @@ class Plotter():
         ax.set_ylim(potential.min()*1.01,potential[self.q_max]*0.95)
         return
     
-    def plot_run(self):
+    def plot_run(self, save=False, fig_name="Optimized.pdf"):
         fig, ax = plt.subplots(figsize=(15,10),ncols=3,nrows=2)
         ax[0,0].plot(self.times, self.get_init_pulse())
+        pulse_lim = (min(self.get_init_pulse().min(),self.get_control().detach().min()),
+                     max(self.get_init_pulse().max(),self.get_control().detach().max()))
+        ax[0,0].set(title="Initial Pulse",
+                    ylim=pulse_lim)
+        ax00_2nd = ax[0,0].twinx()
+        ax00_2nd.plot(self.times,self.init_activation_func(self.times),'k--')
+        ax00_2nd.set_ylim(-0.01,1.01)
         
 
         ax[0,1].plot(self.stored_weights.T)
-        ax[1,1].plot(self.stored_losses.T)
+        ax[0,1].set(title="Loss Weights",
+                    yscale='log',
+                    ylim=(None,1))
+        ax[1,1].plot(self.stored_losses.T,label=self.params_dict['loss_funcs'])
+        ax[1,1].set_prop_cycle(None)
+        ax[1,1].plot((self.stored_losses*self.stored_weights).T,linestyle='--')
+        ax[1,1].plot((self.stored_losses*self.stored_weights).mean(0),'k--')
+        ax[1,1].set(xlabel="Epoch",
+                    title="Losses")
+        ax[1,1].legend()
         ax[1,1].set_yscale('log')
 
         ax[0,2].plot(self.times, self.get_control().detach())
+        ax[0,2].set(title="Optimized Pulse",
+                    ylim=pulse_lim)
+        ax02_2nd = ax[0,2].twinx()
+        ax02_2nd.plot(self.times,self.activation_func(self.times).detach(),'k--')
+        ax02_2nd.set_ylim(-0.01,1.01)
         ax[1,2].plot(self.times, self.get_occupancy().detach().T)
-        # ax[1,2].plot()
+        ax[1,2].set(xlabel="Time [ns]",
+                    title="Occupation (optimized pulse)")
+
+        self.latest_matrix_exp = t.matrix_exp(-1j*self.dt*self.get_H(self.activation_func(self.times).flip(0),self.get_init_pulse().flip(0)))
+        ax[1,0].plot(self.times, self.get_occupancy().detach().T,label=["$\psi_0$","$\psi_1$","$\psi_{rest}$"])
+        _ = self()
+        ax[1,0].legend()
+        ax[1,0].set(xlabel="Time [ns]",
+                    title="Occupation (initial pulse)")
+        
+        fig.tight_layout()
+
+        if save:
+            from os.path import join
+            fig.savefig(join(self.params_dict['exp_path'],fig_name))
