@@ -8,7 +8,7 @@
 
 "_SystemComments":"The following are the specifications for the 1DFlensmon, with respectively: 0.001*pi, 2*pi*10GHz and EJ/400",
 
-"phi_ext": 	0.0031415926535897933,
+"phi_ext": 0.0031415926535897933,
 "EJ": 		62.83185307179586,
 "EC": 		0.15707963267948966,
 
