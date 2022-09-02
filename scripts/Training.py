@@ -102,8 +102,8 @@ class Trainer():
     
     def lr_func(self,epoch):
         # return np.log(epoch+1)
-        tmp = epoch - 4
-        # return max(0.005,10*(epoch-4)/(300 + (epoch-4)))
+        # tmp = epoch - 4
+        return max(0.005,10*(epoch-4)/(300 + (epoch-4)))
     
     def minimize(self, threshold, max_steps):
         from time import time

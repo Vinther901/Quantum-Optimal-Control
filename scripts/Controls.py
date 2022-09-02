@@ -65,11 +65,11 @@ class CauchyPulse():
         # self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
         self.alphas = self.init_activation_func(self.times)
 
-        self.heights = t.nn.parameter.Parameter(self.init_heights())
+        self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
         # self.heights = self.init_heights()
         
         sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.1
-        self.height_weights = 1/(1+sqrd_dists)/t.sum(1/(1+sqrd_dists),1)
+        self.height_weights = (1/(1+sqrd_dists)/t.sum(1/(1+sqrd_dists),1))
         super().__init__()
     
     def get_init_pulse(self):

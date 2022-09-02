@@ -3,6 +3,8 @@ import torch as t
 
 class Periodic_System():
     def __init__(self):
+        # self.device = t.device('cuda')
+
         self.ReLU = t.nn.ReLU()
         self.T = self.params_dict['T']
         self.NTrot = self.params_dict['NTrot']
@@ -11,19 +13,19 @@ class Periodic_System():
 
         self.times = t.linspace(0,self.T,self.NTrot)
         self.dt = (self.times[1:] - self.times[:-1]).mean().item()
-        self.Id = t.eye(self.NHilbert, dtype=t.complex128)
+        self.Id = t.eye(self.NHilbert).cfloat()
 
         q = t.arange(-self.q_max,self.q_max+1,1)
-        self.q_mat = t.diag(q)
+        self.q_mat = t.diag(q).cfloat()
         self.cos_mat = (t.diag(t.ones(self.NHilbert-1),-1) \
-                        + t.diag(t.ones(self.NHilbert-1),1)).type(t.complex128)
+                        + t.diag(t.ones(self.NHilbert-1),1)).cfloat()
         try:
             self.phi_ext = self.params_dict['phi_ext']
-            self.cos2_mat = (t.diag(t.ones(self.NHilbert-2,dtype=t.complex128),-2)*t.exp(t.tensor(-1j*self.phi_ext)) \
+            self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2)*t.exp(t.tensor(-1j*self.phi_ext)) \
                             + t.diag(t.ones(self.NHilbert-2),2)*t.exp(t.tensor(1j*self.phi_ext)))
         except:
             print("Found no phi_ext parameter, assuming it to be 0")
-            self.cos2_mat = (t.diag(t.ones(self.NHilbert-2,dtype=t.complex128),-2) \
+            self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2) \
                             + t.diag(t.ones(self.NHilbert-2),2))
 
         ones = t.ones(self.NTrot-1)
@@ -41,12 +43,19 @@ class Periodic_System():
         self.prepare_KinE()
         self.set_eig_H()
         ####################################################EXPERIMENTAL#
-        self.t1 = t.exp(-1j*self.dt*4*self.params_dict['EC']*q**2)
-        self.t2 = t.exp(-1j*self.dt*self.EJ*q)
-        t3 = t.matrix_exp(1j*self.dt*self.EJ*self.cos_mat)
-        self.t4, u4 = t.linalg.eig(t.matrix_exp(-1j*self.dt*self.EJ*self.cos2_mat))
-        self.t3 = t3@u4
-        self.u4_adj = u4.adjoint()
+        # self.t1 = t.exp(-1j*self.dt*4*self.params_dict['EC']*q**2)
+        # self.t2 = t.exp(-1j*self.dt*self.EJ*q)
+        # t3 = t.matrix_exp(1j*self.dt*self.EJ*self.cos_mat).cfloat()
+        # self.t4, u4 = t.linalg.eig(t.matrix_exp(-1j*self.dt*self.EJ*self.cos2_mat).cfloat())
+        # self.t3 = t3@u4
+        # self.u4_adj = u4.adjoint().cfloat()
+
+        # self.t1 = self.t1.to(self.device)
+        # self.t2 = self.t2.to(self.device)
+        # self.t3 = self.t3.to(self.device)
+        # self.t4 = self.t4.to(self.device)
+        # self.u4_adj = self.u4_adj.to(self.device)
+
         #################################################################
         super().__init__()
 
@@ -57,7 +66,7 @@ class Periodic_System():
     def set_eig_H(self,alpha = 1):
         eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=t.tensor([alpha])).squeeze())
         self.eigvals = eigvals
-        self.eigvecs = eigvecs
+        self.eigvecs = eigvecs.cfloat()
     
     def get_occupancy(self, indices = [0,1]):
         alphas = self.activation_func(self.times)
@@ -71,6 +80,7 @@ class Periodic_System():
 
         wavefunc = self.eigvecs[:,[0]]
         eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas))
+        eigvecs = eigvecs.cfloat()
         for i, mat in enumerate(exp_mat.flip(0)):
             wavefunc = mat@wavefunc
             for j, ind in enumerate(indices):
