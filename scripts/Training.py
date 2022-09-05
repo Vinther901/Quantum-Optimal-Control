@@ -26,16 +26,29 @@ class Trainer():
 
         self.stored_weights = self.loss_weights.unsqueeze(1)
         self.prepare_target_state_adj()
+        self.prepare_target_gate_adj()
         super().__init__()
         self.initialize_loss_means()
         self.stored_losses = self.loss_means.unsqueeze(1)
 
     def prepare_target_state_adj(self):
         self.target_state_adj = self.eigvecs[:,[1]].adjoint()
+    
+    def prepare_target_gate_adj(self):
+        tmp = t.eye(self.subNHilbert,dtype=t.cfloat)
+        tmp[0,0] = 0
+        tmp[0,1] = 1
+        tmp[1,0] = 1
+        tmp[1,1] = 0
+        self.target_gate_adj = tmp.adjoint()
 
     def C1_state(self,U):
         return 1 - t.square(t.abs(self.target_state_adj@U@self.eigvecs[:,[0]])).squeeze()
     
+    def C1_gate(self,U):
+        transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]
+        return 1 - 1/self.subNHilbert**2*t.square(t.abs(t.trace(self.target_gate_adj@transformed)))
+
     # def C2(self,U):
     #     return t.square(self.ascend_start - self.decline_end)
     
@@ -53,7 +66,7 @@ class Trainer():
         return 1 - self.occ[1].mean()
     
     def C8(self,U):
-        # occ = self.get_occupancy(indices=[0,1])
+        # self.occ = self.get_occupancy(indices=[0,1])
         return self.occ[2].mean()
     
     def loss_func(self,U):
@@ -103,7 +116,7 @@ class Trainer():
     def lr_func(self,epoch):
         # return np.log(epoch+1)
         # tmp = epoch - 4
-        return max(0.005,10*(epoch-4)/(300 + (epoch-4)))
+        return max(0.005,2*(epoch-4)/(300 + (epoch-4)))
     
     def minimize(self, threshold, max_steps):
         from time import time
