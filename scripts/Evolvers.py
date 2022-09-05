@@ -16,16 +16,17 @@ class ETrotter():
         E0, U0s = t.linalg.eigh(H0)
         U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
         # self.U0dot = 1j/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@U0s[1:-1]
-        self.U0dot = 1/(self.dt)*(-0.5*U0s[2:]-1.5*U0s[:-2]+2*U0s[1:-1]).adjoint()@U0s[1:-1]
+        # self.U0dot = 1/(self.dt)*(-0.5*U0s[2:]-1.5*U0s[:-2]+2*U0s[1:-1]).adjoint()@U0s[1:-1]
+        self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[:-2] + U0s[2:])/2
         self.H0_term = t.diag_embed(E0).type(t.cfloat) \
             + 1j*self.U0dot
             # + 1j/(self.dt)*(U0s[2:].adjoint()@U0s[1:-1] - t.eye(self.NHilbert))).flip(0)
             # + 1j/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])).flip(0)
             #  - 1j/(2*self.dt)*(U0s[1:].adjoint()@U0s[:-1] - U0s[:-1].adjoint()@U0s[1:])
         
-        self.U0s = U0s[1:-1]
-        self.U0 = self.U0s[0]
-        # self.U0s = 0.5*(U0s[:-2] + U0s[2:])
+        self.U0 = U0s[1]
+        self.U0s = 0.5*(U0s[:-2] + U0s[2:])
+        # self.U0 = self.U0s[0]
         # self.H0_term = self.U0s.adjoint()@H0@self.U0s \
         #     + 1j/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
         
