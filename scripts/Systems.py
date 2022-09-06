@@ -80,13 +80,16 @@ class Periodic_System():
             print("try (occupation)")
             U = t.eye(self.subNHilbert).type(t.cfloat)
             for i, mat in enumerate(exp_mat.flip(0)):
-                tmp = self.U0s[-i].adjoint()@self.U0
-                init_wavefunc = tmp@self.eigvecs[:,[init_ind]]
-                # init_wavefunc = self.eigvecs[:,[init_ind]]
+                # tmp = self.U0s[-i].adjoint()@self.U0
+                # tmp = self.U0
+                # init_wavefunc = tmp@self.eigvecs[:,[init_ind]]
+                init_wavefunc = self.eigvecs[:self.subNHilbert,[init_ind]]
                 # init_wavefunc = t.zeros((1,self.NHilbert),dtype=t.cfloat)
                 # init_wavefunc[0,0] = 1
-                U = mat@U
+                U = self.U0s[-(i+1)].adjoint()@self.U0s[-i]@mat@U
                 for j, ind in enumerate(indices):
+                    # if i == 100:
+                        # print(t.abs((U@init_wavefunc)[ind]))
                     occ[j,i] = t.abs((U@init_wavefunc)[ind])
         except:
             print("except (occupation)")

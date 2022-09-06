@@ -15,7 +15,8 @@ class ETrotter():
         H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
         E0, U0s = t.linalg.eigh(H0)
         U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
-        # self.U0dot = 1j/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@U0s[1:-1]
+        # self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@U0s[1:-1]
+        # self.U0dot = 1/self.dt*(U0s[2:].adjoint() - U0s[1:-1].adjoint())@U0s[1:-1]
         # self.U0dot = 1/(self.dt)*(-0.5*U0s[2:]-1.5*U0s[:-2]+2*U0s[1:-1]).adjoint()@U0s[1:-1]
         self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[:-2] + U0s[2:])/2
         self.H0_term = t.diag_embed(E0).type(t.cfloat) \
@@ -25,7 +26,9 @@ class ETrotter():
             #  - 1j/(2*self.dt)*(U0s[1:].adjoint()@U0s[:-1] - U0s[:-1].adjoint()@U0s[1:])
         
         self.U0 = U0s[1]
-        self.U0s = 0.5*(U0s[:-2] + U0s[2:])
+        self.U0s = U0s[1:]
+        # self.U0s = 0.5*(U0s[2:] + U0s[1:-1])
+        # self.U0s = 0.5*(U0s[:-2] + U0s[2:])
         # self.U0 = self.U0s[0]
         # self.H0_term = self.U0s.adjoint()@H0@self.U0s \
         #     + 1j/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
@@ -37,7 +40,7 @@ class ETrotter():
     def get_H(self,alphas=t.tensor([1]), control=t.tensor([0])):
         if alphas.shape[0] > 1:
             V = control.view(-1,1,1)*self.q_mat
-            return self.H0_term + self.U0s.adjoint()@V@self.U0s
+            return self.H0_term #+ self.U0s.adjoint()@V@self.U0s
         else:
             return t.diag(t.linalg.eigvalsh(self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)).squeeze())
             # return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
