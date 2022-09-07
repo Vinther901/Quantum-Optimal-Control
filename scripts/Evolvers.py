@@ -3,6 +3,8 @@ import torch as t
 
 class QTrotter():
     def __init__(self):
+        self.init_wavefuncs = self.eigvecs
+        self.subNHilbert = self.NHilbert**int(self.params_dict['dim'][0])
         super().__init__()
     
     def get_H(self,alphas=t.tensor([1]),control = t.tensor([0])):
@@ -15,35 +17,70 @@ class ETrotter():
         H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
         E0, U0s = t.linalg.eigh(H0)
         U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
+        angles = (U0s[2:].adjoint()@U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle()
+        # U0s = U0s*t.exp(-0.5j*t.concat([t.zeros((1,21)),angles,t.zeros((1,21))],0)).unsqueeze(1)
+        print((U0s[2:].adjoint()@U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle())
         # self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@U0s[1:-1]
         # self.U0dot = 1/self.dt*(U0s[2:].adjoint() - U0s[1:-1].adjoint())@U0s[1:-1]
         # self.U0dot = 1/(self.dt)*(-0.5*U0s[2:]-1.5*U0s[:-2]+2*U0s[1:-1]).adjoint()@U0s[1:-1]
-        self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[:-2] + U0s[2:])/2
-        self.H0_term = t.diag_embed(E0).type(t.cfloat) \
-            + 1j*self.U0dot
+        # U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[:-2] + U0s[2:])/2
+        U0dot = 1/(4*self.dt)*(U0s[2:].adjoint()@U0s[1:-1] - U0s[1:-1].adjoint()@U0s[2:])
+        self.H0_term = t.diag_embed(E0).type(t.cfloat) + 1j*U0dot
             # + 1j/(self.dt)*(U0s[2:].adjoint()@U0s[1:-1] - t.eye(self.NHilbert))).flip(0)
             # + 1j/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])).flip(0)
             #  - 1j/(2*self.dt)*(U0s[1:].adjoint()@U0s[:-1] - U0s[:-1].adjoint()@U0s[1:])
         
-        self.U0 = U0s[1]
-        self.U0s = U0s[1:]
+        # self.U0 = U0s[1]
+        # self.U0s = U0s[1:-1]
         # self.U0s = 0.5*(U0s[2:] + U0s[1:-1])
         # self.U0s = 0.5*(U0s[:-2] + U0s[2:])
         # self.U0 = self.U0s[0]
         # self.H0_term = self.U0s.adjoint()@H0@self.U0s \
         #     + 1j/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
         
-        self.U0s = self.U0s.flip(0)[:,:,:self.subNHilbert]
-        self.H0_term = self.H0_term.flip(0)[:,:self.subNHilbert,:self.subNHilbert]
+        # self.basis_change = (U0s[2:,:,:self.subNHilbert].adjoint()@U0s[1:-1,:,:self.subNHilbert])
+
+       
+        # print(t.exp(-1j*angles).unsqueeze(2).repeat(1,1,21).shape,U0s[1:-1,:,:self.subNHilbert].shape)
+        self.U0s = U0s[1:-1,:,:self.subNHilbert]
+        # self.basis_change = self.U0s[-(i+1)].adjoint()@self.U0s[-i]
+        self.H0_term = self.H0_term[:,:self.subNHilbert,:self.subNHilbert]
+        self.init_wavefuncs = self.U0s[-1].adjoint()@self.eigvecs
         super().__init__()
 
     def get_H(self,alphas=t.tensor([1]), control=t.tensor([0])):
         if alphas.shape[0] > 1:
-            V = control.view(-1,1,1)*self.q_mat
-            return self.H0_term #+ self.U0s.adjoint()@V@self.U0s
+            V = self.EJ*control.view(-1,1,1)*self.q_mat
+            return self.H0_term + self.U0s.adjoint()@V@self.U0s
         else:
-            return t.diag(t.linalg.eigvalsh(self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)).squeeze())
-            # return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+            # return t.diag(t.linalg.eigvalsh(self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)).squeeze())
+            return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+
+class ETrotter2():
+    def __init__(self):
+        H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=t.ones(self.NTrot),control=t.zeros(self.NTrot))
+        E0, U0s = t.linalg.eigh(H0)
+        U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
+        # U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[:-2] + U0s[2:])/2
+        self.H0_term = t.diag_embed(E0).type(t.cfloat) #+ 1j*U0dot
+
+        # self.U0 = U0s[1]
+        # self.U0s = U0s[1:]
+        self.U0s = U0s[1:-1]
+        self.U0s = self.U0s[:,:,:self.subNHilbert]
+        self.H0_term = self.H0_term[:,:self.subNHilbert,:self.subNHilbert]
+
+        self.init_wavefuncs = self.U0s[-1].adjoint()@self.eigvecs
+        super().__init__()
+
+    def get_H(self,alphas=t.tensor([1]), control=t.tensor([0])):
+        if alphas.shape[0] > 1:
+            V = self.EJ*((alphas.view(-1,1,1) - 1)/2*self.cos2_mat + control.view(-1,1,1)*self.q_mat)
+            return self.H0_term + self.U0s.adjoint()@V@self.U0s
+        else:
+            # return t.diag(t.linalg.eigvalsh(self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)).squeeze())
+            return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+
 
 class BasisChanges(): #Not really implemented
     def __init__(self):
@@ -58,8 +95,8 @@ class BasisChanges(): #Not really implemented
     
     def get_H(self,alphas=t.tensor([1]), control=t.tensor([0])):
         if alphas.shape[0] > 1:
-            alphas = self.activation_func(self.times).flip(0)
-            pulse = self.get_control().flip(0)
+            alphas = self.activation_func(self.times)
+            pulse = self.get_control()
             # M2s = self.t1*t.pow(self.t2,pulse.view(-1,1))
             # matrices = t.zeros((2*self.NTrot,self.NHilbert,self.NHilbert)).type(t.complex128)
             # matrices[0::2] = t.diag_embed(self.t1*t.pow(self.t2,pulse.view(-1,1)))

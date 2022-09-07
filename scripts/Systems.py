@@ -21,16 +21,18 @@ class Periodic_System():
         self.cos_mat = (t.diag(t.ones(self.NHilbert-1),-1) \
                         + t.diag(t.ones(self.NHilbert-1),1)).cfloat()
         try:
-            self.phi_ext = self.params_dict['phi_ext']
-            self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2)*t.exp(t.tensor(-1j*self.phi_ext)) \
-                            + t.diag(t.ones(self.NHilbert-2),2)*t.exp(t.tensor(1j*self.phi_ext)))
+            self.phi_ext = t.tensor(self.params_dict['phi_ext']).cfloat()
         except:
             print("Found no phi_ext parameter, assuming it to be 0")
-            self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2) \
-                            + t.diag(t.ones(self.NHilbert-2),2))
+            self.phi_ext = t.tensor(0).cfloat()
+            # self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2) \
+            #                 + t.diag(t.ones(self.NHilbert-2),2))
+        self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2)*t.exp(-1j*self.phi_ext) \
+                            + t.diag(t.ones(self.NHilbert-2),2)*t.exp(1j*self.phi_ext))
 
+        
+        
         ones = t.ones(self.NTrot-1)
-
         # print("Right now the dimensions of the derivatives are not correct.")
         # self.diff = 1/(2*self.dt)*(t.diag(ones,1)+t.diag(-ones,-1))
         self.diff = 1/self.dt*(t.diag(-t.ones(self.NTrot)) + t.diag(ones,1))
@@ -42,63 +44,83 @@ class Periodic_System():
         self.ddiff[-1] = 0
 
         self.prepare_KinE()
+        if self.params_dict['dim'] == '2d':
+            self.prepare_2d()
         self.set_eig_H()
-        ####################################################EXPERIMENTAL#
-        # self.t1 = t.exp(-1j*self.dt*4*self.params_dict['EC']*q**2)
-        # self.t2 = t.exp(-1j*self.dt*self.EJ*q)
-        # t3 = t.matrix_exp(1j*self.dt*self.EJ*self.cos_mat).cfloat()
-        # self.t4, u4 = t.linalg.eig(t.matrix_exp(-1j*self.dt*self.EJ*self.cos2_mat).cfloat())
-        # self.t3 = t3@u4
-        # self.u4_adj = u4.adjoint().cfloat()
 
-        # self.t1 = self.t1.to(self.device)
-        # self.t2 = self.t2.to(self.device)
-        # self.t3 = self.t3.to(self.device)
-        # self.t4 = self.t4.to(self.device)
-        # self.u4_adj = self.u4_adj.to(self.device)
-
-        #################################################################
         super().__init__()
     
     def prepare_KinE(self):
-        self.KinE = 4*self.params_dict['EC']*self.q_mat**2
         self.EJ = self.params_dict['EJ']
+        if self.params_dict['dim'] == '1d':
+            self.KinE = 4*self.params_dict['EC']*self.q_mat**2
+        elif self.params_dict['dim'] == '2d':
+            mat = self.Id + self.q_mat**2
+            self.KinE = 4*self.params_dict['EC']*t.kron(mat,mat)
+        else:
+            print(self.params_dict['dim'] + ", is not a proper input (either '1d' or '2d')")
+        
     
     def set_eig_H(self,alpha = 1):
         eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=t.tensor([alpha])).squeeze())
         self.eigvals = eigvals
         self.eigvecs = eigvecs.cfloat()
     
+    def prepare_2d(self):
+        mat = self.Id + self.q_mat
+        self.q_mat = t.kron(mat,mat)
+
+        mat = self.Id + self.cos_mat
+        self.cos_mat = t.kron(mat,mat)
+
+        upper = t.diag(t.ones(self.NHilbert-1).cfloat(),1)
+        lower = t.diag(t.ones(self.NHilbert-1).cfloat(),-1)
+        self.cos2_mat = t.exp(1j*self.phi_ext)*t.kron(lower,upper) + t.exp(-1j*self.phi_ext)*t.kron(upper,lower)
+        return
+    
     def get_occupancy(self, indices = [0,1], init_ind = 0):
         alphas = self.activation_func(self.times)
         occ = t.zeros((len(indices)+1,self.NTrot))
-        exp_mat = self.latest_matrix_exp
-        #BAAAAAAAAAAAAAAAAAAD
+
         eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas.detach())) #This is probably what makes alpha regression slow
-        eigvecs = eigvecs.cfloat()
-        try:
-            print("try (occupation)")
-            U = t.eye(self.subNHilbert).type(t.cfloat)
-            for i, mat in enumerate(exp_mat.flip(0)):
-                # tmp = self.U0s[-i].adjoint()@self.U0
-                # tmp = self.U0
-                # init_wavefunc = tmp@self.eigvecs[:,[init_ind]]
-                init_wavefunc = self.eigvecs[:self.subNHilbert,[init_ind]]
-                # init_wavefunc = t.zeros((1,self.NHilbert),dtype=t.cfloat)
-                # init_wavefunc[0,0] = 1
-                U = self.U0s[-(i+1)].adjoint()@self.U0s[-i]@mat@U
-                for j, ind in enumerate(indices):
-                    # if i == 100:
-                        # print(t.abs((U@init_wavefunc)[ind]))
-                    occ[j,i] = t.abs((U@init_wavefunc)[ind])
-        except:
-            print("except (occupation)")
-            wavefunc = self.eigvecs[:,[init_ind]]
-            for i, mat in enumerate(exp_mat.flip(0)):
-                wavefunc = mat@wavefunc
-                for j, ind in enumerate(indices):
-                    occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
-                    # occ[ind,i] = eigvecs[i,:,[ind]].adjoint()@wavefunc
+        eigvecs = eigvecs[:,:self.subNHilbert].cfloat()
+        wavefunc = self.init_wavefuncs[:self.subNHilbert,[init_ind]]
+
+        ############TEST#######
+        # print(((eigvecs[:-1].adjoint()@eigvecs[1:]).abs().diagonal(offset=0,dim1=-2,dim2=-1).sum(dim=-1)<self.NHilbert-0.1).sum())
+        for i, mat in enumerate(self.latest_matrix_exp):
+            wavefunc = mat@wavefunc
+            for j, ind in enumerate(indices):
+                    # occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
+                    occ[j,i] = t.abs(wavefunc[ind])
+
+
+        # try:
+        #     print("try (occupation)")
+        #     init_wavefunc = self.U0s[0].adjoint()@self.eigvecs[:,[init_ind]] #self.subNHilbert
+        #     U = t.eye(self.subNHilbert).type(t.cfloat)
+        #     for i, mat in enumerate(exp_mat.flip(0)):
+        #         # tmp = self.U0s[-i].adjoint()@self.U0
+        #         # tmp = self.U0
+        #         # init_wavefunc = tmp@self.eigvecs[:,[init_ind]]
+                
+        #         # init_wavefunc = t.zeros((1,self.NHilbert),dtype=t.cfloat)
+        #         # init_wavefunc[0,0] = 1
+        #         # U = self.U0s[-(i+1)].adjoint()@self.U0s[-i]@mat@U
+        #         U = mat@U
+        #         for j, ind in enumerate(indices):
+        #             # if i == 100:
+        #                 # print(t.abs((U@init_wavefunc)[ind]))
+        #             # occ[j,i] = t.abs((U@init_wavefunc)[ind])
+        #             occ[j,i] = t.abs((eigvecs[i,:self.subNHilbert,[ind]].adjoint()@U@init_wavefunc))
+        # except:
+        #     print("except (occupation)")
+        #     wavefunc = self.eigvecs[:,[init_ind]]
+        #     for i, mat in enumerate(exp_mat.flip(0)):
+        #         wavefunc = mat@wavefunc
+        #         for j, ind in enumerate(indices):
+        #             occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
+        #             # occ[ind,i] = eigvecs[i,:,[ind]].adjoint()@wavefunc
             
         occ = t.square(occ)
         occ[len(indices)] = 1-occ.sum(0)
