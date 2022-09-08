@@ -47,7 +47,7 @@ class Plotter():
         eigvals, eigvecs = t.linalg.eigh(self.get_H(t.tensor([alpha])).squeeze())
 
         fig, ax = plt.subplots()
-        potential = -2*self.EJ*t.cos(phi) + alpha*self.EJ*t.cos(2*phi - self.phi_ext)
+        potential = (-2*self.EJ*t.cos(phi) + alpha*self.EJ*t.cos(2*phi - self.phi_ext)).real
         ax.plot(phi, potential,'k')
         indices = [0,1,2,3]
         for i in indices:

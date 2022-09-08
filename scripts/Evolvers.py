@@ -17,9 +17,28 @@ class ETrotter():
         H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
         E0, U0s = t.linalg.eigh(H0)
         U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
-        angles = (U0s[2:].adjoint()@U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle()
-        # U0s = U0s*t.exp(-0.5j*t.concat([t.zeros((1,21)),angles,t.zeros((1,21))],0)).unsqueeze(1)
+        # tmp = U0s[2:].adjoint()@U0s[1:-1]
+        # tmp2 = U0s[2:].adjoint().sum(2,keepdim=True)*U0s[1:-1].sum(1,keepdim=True)
+        # tmp = tmp/tmp2
+        # self.tmp = tmp
+        H = self._get_H2(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
+        eigvals, eigvecs = t.linalg.eigh(H[0])
+        mat_exp = t.matrix_exp(-1j*H*self.dt).flip(0)
+        cum_mat_exp = [t.linalg.multi_dot(list(mat for mat in mat_exp[-i:])) for i in range(2,self.NTrot+1)]+ [mat_exp[-1]]+[self.Id]
+        cum_mat_exp = t.concat([tensor.unsqueeze(0) for tensor in cum_mat_exp],0).flip(0)
+        tmp = cum_mat_exp@eigvecs
+        tmp = ((tmp[1:].adjoint()@tmp[:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]]).angle()
+        # self.tmp = tmp
+        angles_0 = t.concat([t.zeros(2,21),tmp],0)
+        tmp_U0s = U0s*t.exp(+1j*angles_0).unsqueeze(1)
+
+        angles = (tmp_U0s[2:].adjoint()@tmp_U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle()
+        angles = angles.cumsum(0)# - tmp.cumsum(0)
+        angles = t.concat([t.zeros((2,21)),angles],0)
+        
+        U0s = tmp_U0s*t.exp(+1j*(angles+angles_0)).unsqueeze(1)
         print((U0s[2:].adjoint()@U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle())
+        print(angles_0)
         # self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@U0s[1:-1]
         # self.U0dot = 1/self.dt*(U0s[2:].adjoint() - U0s[1:-1].adjoint())@U0s[1:-1]
         # self.U0dot = 1/(self.dt)*(-0.5*U0s[2:]-1.5*U0s[:-2]+2*U0s[1:-1]).adjoint()@U0s[1:-1]
@@ -55,6 +74,10 @@ class ETrotter():
         else:
             # return t.diag(t.linalg.eigvalsh(self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)).squeeze())
             return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+
+    def _get_H2(self,alphas=t.tensor([1]),control = t.tensor([0])):
+        # assert type(alpha) == t.Tensor
+        return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
 
 class ETrotter2():
     def __init__(self):

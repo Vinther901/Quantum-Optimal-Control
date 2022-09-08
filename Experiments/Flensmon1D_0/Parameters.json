@@ -1,6 +1,6 @@
 {
 "T": 		30,
-"NTrot": 	1000,
+"NTrot": 	250,
 "q_max": 	10,
 "lr": 		1e-2,
 "Scheduler":	true,
@@ -14,8 +14,8 @@
 "EJ": 		62.83185307179586,
 "EC": 		0.15707963267948966,
 
-"decline_end":	10.0,
-"ascend_start":	20.0,
+"decline_end":	5.0,
+"ascend_start":	15.0,
 "level":	0.5,
 "envelope_amp":	0.1262,
 "detuning":	0.9872,
