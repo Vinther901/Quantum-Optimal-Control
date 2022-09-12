@@ -27,18 +27,19 @@ class ETrotter():
         cum_mat_exp = [t.linalg.multi_dot(list(mat for mat in mat_exp[-i:])) for i in range(2,self.NTrot+1)]+ [mat_exp[-1]]+[self.Id]
         cum_mat_exp = t.concat([tensor.unsqueeze(0) for tensor in cum_mat_exp],0).flip(0)
         tmp = cum_mat_exp@eigvecs
-        tmp = ((tmp[1:].adjoint()@tmp[:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]]).angle()
-        # self.tmp = tmp
-        angles_0 = t.concat([t.zeros(2,21),tmp],0)
-        tmp_U0s = U0s*t.exp(+1j*angles_0).unsqueeze(1)
+        # tmp = ((tmp[1:].adjoint()@tmp[:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]]).angle()
+        # # self.tmp = tmp
+        # angles_0 = t.concat([t.zeros(2,21),tmp],0)
+        # tmp_U0s = U0s*t.exp(+1j*angles_0).unsqueeze(1)
 
-        angles = (tmp_U0s[2:].adjoint()@tmp_U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle()
-        angles = angles.cumsum(0)# - tmp.cumsum(0)
-        angles = t.concat([t.zeros((2,21)),angles],0)
-        
-        U0s = tmp_U0s*t.exp(+1j*(angles+angles_0)).unsqueeze(1)
-        print((U0s[2:].adjoint()@U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle())
-        print(angles_0)
+        # angles = (tmp_U0s[2:].adjoint()@tmp_U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle()
+        # angles = angles.cumsum(0)# - tmp.cumsum(0)
+        # angles = t.concat([t.zeros((2,21)),angles],0)
+
+        # U0s = tmp_U0s*t.exp(+1j*(angles+angles_0)).unsqueeze(1)
+        U0s = t.concat([tmp,tmp[[-1]]],0)
+        # print((U0s[2:].adjoint()@U0s[1:-1])[:,[_ for _ in range(self.NHilbert)],[_ for _ in range(self.NHilbert)]].angle())
+        # print(angles_0)
         # self.U0dot = 1/(2*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@U0s[1:-1]
         # self.U0dot = 1/self.dt*(U0s[2:].adjoint() - U0s[1:-1].adjoint())@U0s[1:-1]
         # self.U0dot = 1/(self.dt)*(-0.5*U0s[2:]-1.5*U0s[:-2]+2*U0s[1:-1]).adjoint()@U0s[1:-1]

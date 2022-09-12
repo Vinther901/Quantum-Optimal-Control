@@ -80,7 +80,7 @@ class CauchyPulse():
     
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
-        return 0.1*t.exp(-(self.times - self.T/3)**2/10)#*t.sin(t.pi/0.5*self.times)
+        return 0.01*t.exp(-(self.times - self.T/3)**2/10)#*t.sin(t.pi/0.5*self.times)
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)

@@ -1,6 +1,6 @@
 {
 "T": 		30,
-"NTrot": 	250,
+"NTrot": 	1000,
 "q_max": 	10,
 "lr": 		1e-2,
 "Scheduler":	true,
