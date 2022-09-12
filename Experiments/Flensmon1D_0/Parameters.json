@@ -16,7 +16,7 @@
 
 "decline_end":	5.0,
 "ascend_start":	15.0,
-"level":	0.5,
+"level":	0.2,
 "envelope_amp":	0.1262,
 "detuning":	0.9872,
 "phase":	0.3473

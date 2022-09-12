@@ -91,8 +91,8 @@ class Periodic_System():
         for i, mat in enumerate(self.latest_matrix_exp):
             wavefunc = mat@wavefunc
             for j, ind in enumerate(indices):
-                    occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
-                    # occ[j,i] = t.abs(wavefunc[ind])
+                    # occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
+                    occ[j,i] = t.abs(wavefunc[ind])
 
 
         # try:
