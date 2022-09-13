@@ -17,15 +17,25 @@ class ETrotter():
         H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
         E0, U0s = t.linalg.eigh(H0)
         U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
-     
+
+        #### WORKS NICELY ####
         fphase = U0s[:,self.NHilbert//2 - 2].angle() #8 #self.NHilbert//2 - 2
         U0s = U0s*t.exp(-1j*fphase).unsqueeze(1)
+        
+        # tmp_U0dot =  U0s[2:].adjoint()@U0s[1:-1]#U0s[2:].adjoint()@U0s[:-2]
+        # diag_inds = [_ for _ in range(self.NHilbert)]
+        # angles = tmp_U0dot[:,diag_inds,diag_inds].angle()
+        # phase_mat = t.diag(t.ones(tmp_U0dot.shape[0]),-1)[1:] - t.diag(t.ones(tmp_U0dot.shape[0]),1)[:-1]
+        # sol = t.linalg.lstsq(phase_mat,angles).solution
+        # U0s[1:] = U0s[1:]*t.exp(-1j*sol.unsqueeze(1))
 
-        # U0dot = 1/(2*self.dt)*(U0s[2:].adjoint()@U0s[1:-1] - U0s[1:-1].adjoint()@U0s[2:])
-        U0dot = 1/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
+        # tmp_U0dot = tmp_U0dot*t.exp(-1j*angles.unsqueeze(1))
+        # U0dot = 1/(2*self.dt)*(tmp_U0dot - tmp_U0dot.adjoint())
+
+        U0dot = 1/(2*self.dt)*(U0s[2:].adjoint()@U0s[1:-1] - U0s[1:-1].adjoint()@U0s[2:])
+        # U0dot = 1/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
         self.H0_term = t.diag_embed(E0).type(t.cfloat) + 1j*U0dot
         self.U0s = U0s[1:-1,:,:self.subNHilbert]
-        # self.basis_change = self.U0s[-(i+1)].adjoint()@self.U0s[-i]
         self.H0_term = self.H0_term[:,:self.subNHilbert,:self.subNHilbert]
         self.init_wavefuncs = self.U0s[0].adjoint()@self.eigvecs
         super().__init__()
@@ -46,7 +56,7 @@ class ETrotter3():
     def __init__(self):
         from tqdm import tqdm
         # import numpy as np
-        extra = 0
+        extra = 40
         times = t.linspace(0,self.T,self.NTrot + (self.NTrot-1)*extra)
         H0 = self.KinE.repeat((times.shape[0],1,1)) + self.V(alphas=self.init_activation_func(times),control=t.zeros(times.shape[0]))
         # H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
@@ -66,7 +76,8 @@ class ETrotter3():
         # Fs[~Fs.isfinite()] = 0
         
         diag_inds = [_ for _ in range(self.NHilbert)]
-        Fs[:,diag_inds,diag_inds] = 0
+        Fs = Fs.cfloat()
+        Fs[:,diag_inds,diag_inds] = 1j*t.rand(len(diag_inds)).repeat(Fs.shape[0],1)
         print(self.NHilbert**2*times.shape[0] - Fs.isfinite().sum())
         # self.Fs = Fs
         # Fs = t.concat([Fs,Fs[[-1]]],0)
@@ -77,11 +88,14 @@ class ETrotter3():
         U0s_adj[0] = tmp_eigvec.adjoint()
         for i in tqdm(range(times.shape[0])):
             dH = H0[i+1] - H0[i]
-            U0s_adj[i+1] = (self.Id + Fs[i]*(U0s_adj[i]@dH@U0s_adj[i].adjoint()))@U0s_adj[i]
-        self.U0s_adj = U0s_adj
+            # U0s_adj[i+1] = (self.Id + Fs[i]*(U0s_adj[i]@dH@U0s_adj[i].adjoint()))@U0s_adj[i]
+            U0s_adj[i+1] = t.matrix_exp(Fs[i]*(U0s_adj[i]@dH@U0s_adj[i].adjoint()))@U0s_adj[i]
+        # self.U0s_adj = U0s_adj
         U0s = U0s_adj.adjoint()
         
-        U0dot = 1/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
+        tmp_dt = (times[1:] - times[:-1]).mean().item()
+        U0dot = 1/(2*tmp_dt)*(U0s[2:].adjoint()@U0s[1:-1] - U0s[1:-1].adjoint()@U0s[2:])
+        # U0dot = 1/(4*tmp_dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
         self.H0_term = t.diag_embed(E0s).type(t.cfloat) + 1j*U0dot
         self.U0s = U0s[1:-1,:,:self.subNHilbert]
 
