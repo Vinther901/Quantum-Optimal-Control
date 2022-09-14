@@ -32,7 +32,7 @@ class Trainer():
         self.stored_losses = self.loss_means.unsqueeze(1)
 
     def prepare_target_state_adj(self):
-        self.target_state_adj = self.eigvecs[:,[1]].adjoint()
+        self.target_state_adj = self.init_wavefuncs[:self.subNHilbert,[1]].adjoint()#self.eigvecs[:,[1]].adjoint()
     
     def prepare_target_gate_adj(self):
         tmp = t.eye(self.subNHilbert,dtype=t.cfloat)
@@ -43,7 +43,7 @@ class Trainer():
         self.target_gate_adj = tmp.adjoint()
 
     def C1_state(self,U):
-        return 1 - t.square(t.abs(self.target_state_adj@U@self.eigvecs[:,[0]])).squeeze()
+        return 1 - t.square(t.abs(self.target_state_adj@U@self.init_wavefuncs[:self.subNHilbert,[0]])).squeeze()
     
     def C1_gate(self,U):
         transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]

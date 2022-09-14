@@ -1,4 +1,5 @@
 import torch as t
+import os
 
 
 class QTrotter():
@@ -14,43 +15,68 @@ class QTrotter():
 
 class ETrotter():
     def __init__(self):
-        H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
-        E0, U0s = t.linalg.eigh(H0)
-        U0s = t.concat([U0s[[0]],U0s,U0s[[-1]]],0)
-
-        #### WORKS NICELY ####
-        fphase = U0s[:,self.NHilbert//2 - 2].angle() #8 #self.NHilbert//2 - 2
-        U0s = U0s*t.exp(-1j*fphase).unsqueeze(1)
+        try:
+            U0s, E0s = self.load_UE0s()
+            print("Loaded UE0s")
+        except:
+            print("No UE0s found, simulating and saving")
+            self.save_UE0s()
+            print("Done")
+            U0s, E0s = self.load_UE0s()
         
-        # tmp_U0dot =  U0s[2:].adjoint()@U0s[1:-1]#U0s[2:].adjoint()@U0s[:-2]
-        # diag_inds = [_ for _ in range(self.NHilbert)]
-        # angles = tmp_U0dot[:,diag_inds,diag_inds].angle()
-        # phase_mat = t.diag(t.ones(tmp_U0dot.shape[0]),-1)[1:] - t.diag(t.ones(tmp_U0dot.shape[0]),1)[:-1]
-        # sol = t.linalg.lstsq(phase_mat,angles).solution
-        # U0s[1:] = U0s[1:]*t.exp(-1j*sol.unsqueeze(1))
-
-        # tmp_U0dot = tmp_U0dot*t.exp(-1j*angles.unsqueeze(1))
-        # U0dot = 1/(2*self.dt)*(tmp_U0dot - tmp_U0dot.adjoint())
-
-        U0dot = 1/(2*self.dt)*(U0s[2:].adjoint()@U0s[1:-1] - U0s[1:-1].adjoint()@U0s[2:])
-        # U0dot = 1/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
-        self.H0_term = t.diag_embed(E0).type(t.cfloat) + 1j*U0dot
-        self.U0s = U0s[1:-1,:,:self.subNHilbert]
+        U0dot_tmp = U0s[1:].adjoint()@U0s[:-1]
+        U0dot = 1/(2*self.dt)*(U0dot_tmp - U0dot_tmp.adjoint())
+        self.H0_term = t.diag_embed(E0s) + 1j*U0dot
         self.H0_term = self.H0_term[:,:self.subNHilbert,:self.subNHilbert]
-        self.init_wavefuncs = self.U0s[0].adjoint()@self.eigvecs
+        U0s = U0s[:-1,:,:self.subNHilbert]
+        self.UdVU = U0s.adjoint()@self.q_mat@U0s
+        self.init_wavefuncs = U0s[0].adjoint()@self.eigvecs
         super().__init__()
+
+    def save_UE0s(self):
+        H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
+        E0s, U0s = t.linalg.eigh(H0)
+        U0s, E0s = self.clean_basis(U0s,E0s.cfloat())
+        U0s = t.concat([U0s,U0s[[-1]]],0)
+        E0s = t.concat([E0s,E0s[[-1]]],0).unsqueeze(1)
+
+        UE0s = t.concat([E0s,U0s],1)
+
+        filename = "UE0s_N"+str(self.NTrot)+"_q"+str(self.q_max)+".pt"
+        t.save(UE0s, os.path.join(self.params_dict['exp_path'],filename))
+        return
+
+    def load_UE0s(self):
+        filename = "UE0s_N"+str(self.NTrot)+"_q"+str(self.q_max)+".pt"
+        UE0s = t.load(os.path.join(self.params_dict['exp_path'],filename))
+        return UE0s[:,1:], UE0s[:-1,0]
+    
+    def clean_basis(self,U0s,E0s):
+        NHilbert = self.NHilbert**int(self.params_dict['dim'][0])
+        diag_inds = [_ for _ in range(NHilbert)]
+        threshold = 0.7071 #sqrt(0.5)
+        for i in range(U0s.shape[0]-1):
+            tmp = U0s[i+1].adjoint()@U0s[i]
+            perm = (tmp.abs()>threshold).cfloat()
+            assert perm.real.sum() == NHilbert, f"Permutation matrix not Unitary, got {perm.real.sum()}, for step {i}"
+            U0s[i+1] = U0s[i+1]@perm
+            E0s[i+1] = E0s[i+1]@perm
+
+            tmp = U0s[i+1].adjoint()@U0s[i]
+            angle = tmp[diag_inds,diag_inds].angle()
+            U0s[i+1] = U0s[i+1]*t.exp(+1j*angle)
+        return U0s, E0s
 
     def get_H(self,alphas=t.tensor([1]), control=t.tensor([0])):
         if alphas.shape[0] > 1:
-            V = self.EJ*control.view(-1,1,1)*self.q_mat
-            return self.H0_term + self.U0s.adjoint()@V@self.U0s
+            return self.H0_term + self.EJ*control.view(-1,1,1)*self.UdVU
         else:
             # return t.diag(t.linalg.eigvalsh(self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)).squeeze())
             return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
 
-    def _get_H2(self,alphas=t.tensor([1]),control = t.tensor([0])):
-        # assert type(alpha) == t.Tensor
-        return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+    # def _get_H2(self,alphas=t.tensor([1]),control = t.tensor([0])):
+    #     # assert type(alpha) == t.Tensor
+    #     return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
 
 class ETrotter3():
     def __init__(self):
@@ -169,6 +195,22 @@ class BasisChanges(): #Not really implemented
 
 
 ###############Graveyard###################
+        # U0dot = 1/(4*self.dt)*(U0s[2:].adjoint()@U0s[:-2] - U0s[:-2].adjoint()@U0s[2:])
+
+        # U0s, E0s = self.clean_basis(U0s,E0s.cfloat())
+        #### WORKS NICELY ####
+        # fphase = U0s[:,self.NHilbert//2 - 2].angle() #8 #self.NHilbert//2 - 2
+        # U0s = U0s*t.exp(-1j*fphase).unsqueeze(1)
+        
+        # tmp_U0dot =  U0s[2:].adjoint()@U0s[1:-1]#U0s[2:].adjoint()@U0s[:-2]
+        # diag_inds = [_ for _ in range(self.NHilbert**int(self.params_dict['dim'][0]))]
+        # angles = tmp_U0dot[:,diag_inds,diag_inds].angle()
+        # phase_mat = t.diag(t.ones(tmp_U0dot.shape[0]),-1)[1:] - t.diag(t.ones(tmp_U0dot.shape[0]),1)[:-1]
+        # sol = t.linalg.lstsq(phase_mat,angles).solution
+        # U0s[1:] = U0s[1:]*t.exp(-1j*sol.unsqueeze(1)) #+ t.diag_embed(1j*t.rand(len(diag_inds)).repeat(U0s.shape[0]-1,1))
+
+        # tmp_U0dot = tmp_U0dot*t.exp(-1j*angles.unsqueeze(1))
+        # U0dot = 1/(2*self.dt)*(tmp_U0dot - tmp_U0dot.adjoint())
 
         # tmp = U0s[2:].adjoint()@U0s[1:-1]
         # tmp2 = U0s[2:].adjoint().sum(2,keepdim=True)*U0s[1:-1].sum(1,keepdim=True)

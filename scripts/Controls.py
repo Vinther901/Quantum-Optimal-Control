@@ -68,7 +68,7 @@ class CauchyPulse():
         self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
         # self.heights = self.init_heights()
         
-        sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.1
+        sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.01
         self.height_weights = (1/(1+sqrd_dists)/t.sum(1/(1+sqrd_dists),1))
         super().__init__()
     
@@ -80,7 +80,7 @@ class CauchyPulse():
     
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
-        return 0.05*t.exp(-(self.times - self.T/2)**2/20)#*t.sin(t.pi/1*self.times)
+        return 0.4*t.exp(-(self.times - self.T/2)**2/10)*t.sin(2.7646*0.8*self.times)
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)
@@ -115,7 +115,8 @@ class FreePulse():
     def get_init_pulse(self):
         # return t.ones(self.NTrot)
         # return 5*t.pi/(2*self.T)*t.sin((self.eigvals[1] - self.eigvals[0])*self.times-0.1*t.pi)**2
-        return 0.1*t.exp(-(self.times - self.T/2)**2/20)
+        # return 0.1*t.exp(-(self.times - self.T/2)**2/20)
+        return  0.1*t.exp(-(self.times - self.T/2)**2/10)*t.sin(17.6*self.times)
 
         # return t.tensor([ 4.1660e-04, -2.4065e-03, -1.5939e-03,  9.2546e-04,  1.3162e-04,
         # -1.8205e-03, -1.6280e-04,  2.7743e-03,  1.7387e-03, -6.9497e-04,
