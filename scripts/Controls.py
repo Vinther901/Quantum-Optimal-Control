@@ -68,7 +68,7 @@ class CauchyPulse():
         self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
         # self.heights = self.init_heights()
         
-        sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.01
+        sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.1
         self.height_weights = (1/(1+sqrd_dists)/t.sum(1/(1+sqrd_dists),1))
         super().__init__()
     
@@ -80,7 +80,7 @@ class CauchyPulse():
     
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
-        return 0.4*t.exp(-(self.times - self.T/2)**2/10)*t.sin(2.7646*0.8*self.times)
+        return 0.05*t.exp(-(self.times - self.T/2)**2/10)*t.sin(2.7646*0.8*self.times)
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)
