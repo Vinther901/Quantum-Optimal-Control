@@ -3,9 +3,13 @@ import torch as t
 class RampDownUpPulse():
     def __init__(self):
         self.Sigmoid = t.nn.Sigmoid()
-        self.decline_end = t.nn.parameter.Parameter(t.tensor(self.params_dict['decline_end']))
-        self.ascend_start = t.nn.parameter.Parameter(t.tensor(self.params_dict['ascend_start']))
-        self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
+        # self.decline_end = t.nn.parameter.Parameter(t.tensor(self.params_dict['decline_end']))
+        # self.ascend_start = t.nn.parameter.Parameter(t.tensor(self.params_dict['ascend_start']))
+        # self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
+        self.decline_end = t.tensor(self.params_dict['decline_end'])
+        self.ascend_start = t.tensor(self.params_dict['ascend_start'])
+        self.level = t.tensor(self.params_dict['level'])
+
         self.envelope_amp = t.nn.parameter.Parameter(t.tensor(self.params_dict['envelope_amp']))
         self.detuning = t.nn.parameter.Parameter(t.tensor(self.params_dict['detuning']))
         self.phase = t.nn.parameter.Parameter(t.tensor(self.params_dict['phase']))
@@ -13,7 +17,7 @@ class RampDownUpPulse():
     
     def get_control(self):
         eigvals = t.linalg.eigvalsh(self.get_H(self.level.view(1)).squeeze())
-        omega_d = eigvals[1] - eigvals[0]
+        omega_d = (eigvals[1] - eigvals[0])
         pulse = t.cos(self.detuning*omega_d*(self.times - self.decline_end - self.phase))
         envelope = self.envelope_func()
         return envelope*pulse
@@ -51,7 +55,7 @@ class RampDownUpPulse():
         phase = t.tensor(self.params_dict['phase'])
         envelope = envelope_amp*self.custom_Sigmoid(self.times-decline_end)*self.custom_Sigmoid(ascend_start - self.times)
         eigvals = t.linalg.eigvalsh(self.get_H(level.view(1)).squeeze())
-        omega_d = eigvals[1] - eigvals[0]
+        omega_d = (eigvals[1] - eigvals[0])
         pulse = t.cos(detuning*omega_d*(self.times - decline_end - phase))
         return envelope*pulse
 
@@ -80,7 +84,7 @@ class CauchyPulse():
     
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
-        return 0.05*t.exp(-(self.times - self.T/2)**2/10)*t.sin(2.7646*0.8*self.times)
+        return 0.01*t.exp(-(self.times - self.T/2)**2/10)*t.sin(0.5390609753511115*0.9*self.times)
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)

@@ -18,7 +18,8 @@ class Periodic_System():
 
         q = t.arange(-self.q_max,self.q_max+1,1)
         self.q_mat = t.diag(q).cfloat()
-        self.cos_mat = (t.diag(t.ones(self.NHilbert-1),-1) \
+        print("I added a factor half to the cosines")
+        self.cos_mat = 0.5*(t.diag(t.ones(self.NHilbert-1),-1) \
                         + t.diag(t.ones(self.NHilbert-1),1)).cfloat()
         try:
             self.phi_ext = t.tensor(self.params_dict['phi_ext']).cfloat()
@@ -27,7 +28,7 @@ class Periodic_System():
             self.phi_ext = t.tensor(0).cfloat()
             # self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2) \
             #                 + t.diag(t.ones(self.NHilbert-2),2))
-        self.cos2_mat = (t.diag(t.ones(self.NHilbert-2).cfloat(),-2)*t.exp(-1j*self.phi_ext) \
+        self.cos2_mat = 0.5*(t.diag(t.ones(self.NHilbert-2).cfloat(),-2)*t.exp(-1j*self.phi_ext) \
                             + t.diag(t.ones(self.NHilbert-2),2)*t.exp(1j*self.phi_ext))
 
         
@@ -54,9 +55,10 @@ class Periodic_System():
         self.EJ = self.params_dict['EJ']
         if self.params_dict['dim'] == '1d':
             self.KinE = 4*self.params_dict['EC']*self.q_mat**2
+            self.V = self.V_1d
         elif self.params_dict['dim'] == '2d':
-            mat = self.Id + self.q_mat**2
-            self.KinE = 4*self.params_dict['EC']*t.kron(mat,mat)
+            self.KinE = 4*self.params_dict['EC']*(t.kron(self.q_mat**2,self.Id) + t.kron(self.Id,self.q_mat**2))
+            self.V = self.V_2d
         else:
             print(self.params_dict['dim'] + ", is not a proper input (either '1d' or '2d')")
         
@@ -67,15 +69,13 @@ class Periodic_System():
         self.eigvecs = eigvecs.cfloat()
     
     def prepare_2d(self):
-        mat = self.Id + self.q_mat
-        self.q_mat = t.kron(mat,mat)
+        self.q_mat = t.kron(self.q_mat,self.Id) + t.kron(self.Id,self.q_mat)
 
-        mat = self.Id + self.cos_mat
-        self.cos_mat = t.kron(mat,mat)
+        self.cos_mat = t.kron(self.cos_mat,self.Id) + t.kron(self.Id,self.cos_mat)
 
         upper = t.diag(t.ones(self.NHilbert-1).cfloat(),1)
         lower = t.diag(t.ones(self.NHilbert-1).cfloat(),-1)
-        self.cos2_mat = t.exp(1j*self.phi_ext)*t.kron(lower,upper) + t.exp(-1j*self.phi_ext)*t.kron(upper,lower)
+        self.cos2_mat = 0.5*(t.exp(1j*self.phi_ext)*t.kron(lower,upper) + t.exp(-1j*self.phi_ext)*t.kron(upper,lower))
         return
     
     def get_occupancy(self, indices = [0,1], init_ind = 0):

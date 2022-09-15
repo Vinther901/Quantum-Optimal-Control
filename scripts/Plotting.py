@@ -40,7 +40,8 @@ class Plotter():
     def plot_occupancy(self,indices=[0,1]):
         occ = self.get_occupancy(indices).detach()
         fig, ax = plt.subplots()
-        ax.plot(self.times,occ.T)
+        ax.plot(self.times,occ[:-1].T)
+        ax.plot(self.times,occ[-1],'k--')#,zorder=-1)
     
     def plot_potential(self,alpha=1):
         phi = t.linspace(-t.pi,t.pi,self.NHilbert)
@@ -91,7 +92,7 @@ class Plotter():
         ax[1,2].set(xlabel="Time [ns]",
                     title="Occupation (optimized pulse)")
 
-        self.latest_matrix_exp = t.matrix_exp(-1j*self.dt*self.get_H(self.activation_func(self.times).flip(0),self.get_init_pulse().flip(0)))
+        self.latest_matrix_exp = t.matrix_exp(-1j*self.dt*self.get_H(self.activation_func(self.times),self.get_init_pulse()))
         ax[1,0].plot(self.times, self.get_occupancy().detach().T,label=["$\psi_0$","$\psi_1$","$\psi_{rest}$"])
         _ = self()
         ax[1,0].legend()

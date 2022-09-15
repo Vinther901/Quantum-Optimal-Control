@@ -71,7 +71,7 @@ class Trainer():
     
     def loss_func(self,U):
         self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]
-        self.update_weights()
+        # self.update_weights()
         return t.sum(self.loss_weights*self.losses)
     
     def initialize_loss_means(self):
@@ -100,8 +100,14 @@ class Trainer():
         cs = self.loss_ratio_means/t.sqrt(self.loss_vars + 10**(-5-self.N_epoch))
         self.loss_weights = cs/t.sum(cs)#/old_lm
 
+        # w = 10**(-100/self.N_epoch)
+        # self.loss_weights = w*self.loss_weights + (1-w)*self.stored_weights[:,0]
+
         self.stored_weights = t.cat([self.stored_weights,self.loss_weights.detach().unsqueeze(1)],dim=1)#[:500]
         self.stored_losses = t.cat([self.stored_losses,self.losses.detach().unsqueeze(1)],dim=1)
+
+        w = 10**(-10/self.N_epoch)
+        self.loss_weights = w*self.loss_weights + (1-w)*self.stored_weights[:,0]
 
 
     def step_with_scheduler(self):
