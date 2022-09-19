@@ -72,7 +72,7 @@ class CauchyPulse():
         self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
         # self.heights = self.init_heights()
         
-        sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.1
+        sqrd_dists = (self.times.view(-1,1) - self.times.view(1,-1))**2/0.001
         self.height_weights = (1/(1+sqrd_dists)/t.sum(1/(1+sqrd_dists),1))
         super().__init__()
     
@@ -80,11 +80,12 @@ class CauchyPulse():
         return t.sum(self.init_heights()*self.height_weights,1)
     
     def get_control(self):
+        # return t.cumsum(self.restrict_diff(),0)
         return t.sum(self.heights*self.height_weights,1)
     
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
-        return 0.01*t.exp(-(self.times - self.T/2)**2/10)*t.sin(0.5390609753511115*0.9*self.times)
+        return 0.05*t.exp(-(self.times - self.T/2)**2/10)*t.sin(10*self.times)
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)
@@ -109,6 +110,66 @@ class CauchyPulse():
     def envelope_func(self):
         return t.zeros(self.NTrot)
 
+class ConstrainedPulse():
+    def __init__(self):
+        # self.decline_end = t.nn.parameter.Parameter(t.tensor(self.params_dict['decline_end']))
+        # self.ascend_start = t.nn.parameter.Parameter(t.tensor(self.params_dict['ascend_start']))
+        # self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
+        self.alphas = self.init_activation_func(self.times)
+
+        # self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
+        heights = self.init_heights()
+        self.diffs = t.nn.parameter.Parameter(heights[1:] - heights[:-1])
+        self.max_diff = 0.005
+        super().__init__()
+
+    def restrict_diff(self,diff):
+    # def restrict_diff(self,heights):
+        max_diff = 0.005
+        scaling = 0.001
+        constrained = self.restrict_output(scaling*diff,0,max_diff) + self.restrict_output(scaling*diff,-max_diff,0)-max_diff
+        # diff = heights[1:] - heights[:-1]
+        # constrained = self.restrict_output(diff,0,max_diff) + self.restrict_output(diff,-max_diff,0)-max_diff
+
+        # return t.concat([heights[[0]],constrained])
+        return t.concat([t.tensor([0.]),constrained])
+    
+    def get_init_pulse(self):
+        heights = self.init_heights()
+        return t.cumsum(self.restrict_diff(heights[1:] - heights[:-1]),0)
+        # return t.cumsum(self.restrict_diff(heights),0)
+    
+    def get_control(self):
+        # return t.cumsum(self.restrict_diff(self.heights),0)
+        return t.cumsum(self.restrict_diff(self.diffs),0)
+    
+    def init_heights(self):
+        # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
+        # return 0.0*t.exp(-(self.times - self.T/2)**2/10)*t.sin(5*self.times)
+        return 0.15*t.sin(1*self.times)*t.exp(-(self.times - self.T/2)**2/100)*1000
+    
+    def activation_func(self,time):
+        # decline_end = self.restrict_output(self.decline_end,0,self.T)
+        # ascend_start = self.restrict_output(self.ascend_start,0,self.T)
+        # level = self.restrict_output(self.level,0,1)
+
+        # left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        # right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        # return left_slope + right_slope + level
+        return self.alphas
+    
+    def init_activation_func(self,time):
+        decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
+        ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
+        level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
+
+        left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        return left_slope + right_slope + level
+        # return self.alphas
+    
+    def envelope_func(self):
+        return t.zeros(self.NTrot)
 
 class FreePulse():
     def __init__(self):

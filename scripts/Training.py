@@ -46,8 +46,11 @@ class Trainer():
         return 1 - t.square(t.abs(self.target_state_adj@U@self.init_wavefuncs[:self.subNHilbert,[0]])).squeeze()
     
     def C1_gate(self,U):
-        transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]
-        return 1 - 1/self.subNHilbert**2*t.square(t.abs(t.trace(self.target_gate_adj@transformed)))
+        # transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]
+        # wavefunc = U@self.init_wavefuncs[:self.subNHilbert]
+        # return 1 - 1/self.subNHilbert**2*t.square(t.abs(t.trace(self.target_gate_adj@U)))
+        dim = 5
+        return 1 - 1/dim**2*t.square(t.abs(t.trace(self.target_gate_adj[:dim]@U[:,:dim])))
 
     # def C2(self,U):
     #     return t.square(self.ascend_start - self.decline_end)

@@ -134,3 +134,7 @@ class Periodic_System():
     
     # def custom_Hardsigmoid(self,x): #restrict linearly to [0,1]
     #     return self.Hardsigmoid(6*(x-0.5)) #Perhaps should be restricted to [0.5,1]
+
+    def Print(statement):
+        from time import localtime, strftime
+        print("{} - {}".format(strftime("%H:%M:%S", localtime()),statement))

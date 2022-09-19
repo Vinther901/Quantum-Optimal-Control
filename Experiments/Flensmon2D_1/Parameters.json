@@ -2,9 +2,9 @@
 "T": 		30,
 "NTrot": 	1000,
 "q_max": 	10,
-"lr": 		1e-2,
+"lr": 		1e-3,
 "Scheduler":	true,
-"loss_funcs":	["C1_state","C7"],
+"loss_funcs":	["C1_gate"],
 "subNHilbert":  20,
 "dim":          "2d",
 
