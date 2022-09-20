@@ -9,6 +9,8 @@ class Trainer():
         self.lr = self.params_dict['lr']
 
         self.optimizer = t.optim.Adam(self.parameters(), lr=self.lr)
+        #Using stochastic gradient descent is no bueno.
+        # self.optimizer = t.optim.SGD(self.parameters(), lr=self.lr,momentum=0.0)
         if self.params_dict['Scheduler']:
             self.scheduler = t.optim.lr_scheduler.LambdaLR(self.optimizer,self.lr_func)
             self.step = self.step_with_scheduler
@@ -49,7 +51,7 @@ class Trainer():
         # transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]
         # wavefunc = U@self.init_wavefuncs[:self.subNHilbert]
         # return 1 - 1/self.subNHilbert**2*t.square(t.abs(t.trace(self.target_gate_adj@U)))
-        dim = 5
+        dim = 3#self.subNHilbert
         return 1 - 1/dim**2*t.square(t.abs(t.trace(self.target_gate_adj[:dim]@U[:,:dim])))
 
     # def C2(self,U):
@@ -72,9 +74,14 @@ class Trainer():
         # self.occ = self.get_occupancy(indices=[0,1])
         return self.occ[2].mean()
     
+    def C8_gate(self,U):
+        occ0 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)])
+        occ1 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_ind=1)
+        return occ0[5:].sum(0).mean() + occ1[5:].sum(0).mean()
+    
     def loss_func(self,U):
         self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]
-        # self.update_weights()
+        self.update_weights()
         return t.sum(self.loss_weights*self.losses)
     
     def initialize_loss_means(self):
@@ -109,7 +116,7 @@ class Trainer():
         self.stored_weights = t.cat([self.stored_weights,self.loss_weights.detach().unsqueeze(1)],dim=1)#[:500]
         self.stored_losses = t.cat([self.stored_losses,self.losses.detach().unsqueeze(1)],dim=1)
 
-        w = 10**(-10/self.N_epoch)
+        w = 10**(-1000/self.N_epoch)
         self.loss_weights = w*self.loss_weights + (1-w)*self.stored_weights[:,0]
 
 
@@ -125,7 +132,8 @@ class Trainer():
     def lr_func(self,epoch):
         # return np.log(epoch+1)
         # tmp = epoch - 4
-        return max(0.005,2*(epoch-4)/(300 + (epoch-4)))
+        # return max(0.005,1*(epoch-4)/(300 + (epoch-4)))
+        return 0.9/(1+((epoch-15)/5)**2) + 0.1
     
     def minimize(self, threshold, max_steps):
         from time import time

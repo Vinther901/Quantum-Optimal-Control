@@ -136,7 +136,8 @@ class ETrotter3():
         
         diag_inds = [_ for _ in range(self.NHilbert)]
         Fs = Fs.cfloat()
-        Fs[:,diag_inds,diag_inds] = 1j*t.rand(len(diag_inds)).repeat(Fs.shape[0],1)
+        self.rands = t.rand(len(diag_inds))
+        Fs[:,diag_inds,diag_inds] = 1j*self.rands.repeat(Fs.shape[0],1)
         print(self.NHilbert**2*times.shape[0] - Fs.isfinite().sum())
         # self.Fs = Fs
         # Fs = t.concat([Fs,Fs[[-1]]],0)

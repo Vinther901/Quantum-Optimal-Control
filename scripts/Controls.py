@@ -117,36 +117,95 @@ class ConstrainedPulse():
         # self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
         self.alphas = self.init_activation_func(self.times)
 
-        # self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
-        heights = self.init_heights()
-        self.diffs = t.nn.parameter.Parameter(heights[1:] - heights[:-1])
-        self.max_diff = 0.005
+        self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
+        # heights = self.init_heights()
+        # self.diffs = t.nn.parameter.Parameter(heights[1:] - heights[:-1])
+        # self.max_diff = 0.005
         super().__init__()
 
-    def restrict_diff(self,diff):
+    # # def restrict_diff(self,diff):
     # def restrict_diff(self,heights):
-        max_diff = 0.005
-        scaling = 0.001
-        constrained = self.restrict_output(scaling*diff,0,max_diff) + self.restrict_output(scaling*diff,-max_diff,0)-max_diff
-        # diff = heights[1:] - heights[:-1]
-        # constrained = self.restrict_output(diff,0,max_diff) + self.restrict_output(diff,-max_diff,0)-max_diff
+    #     max_diff = 0.005
+    #     # scaling = 0.001
+    #     # constrained = self.restrict_output(scaling*diff,0,max_diff) + self.restrict_output(scaling*diff,-max_diff,0)-max_diff
+    #     diff = heights[1:] - heights[:-1]
+    #     constrained = self.restrict_output(diff,0,max_diff) + self.restrict_output(diff,-max_diff,0)-max_diff
 
-        # return t.concat([heights[[0]],constrained])
-        return t.concat([t.tensor([0.]),constrained])
+    #     return t.concat([heights[[0]],constrained])
+    #     # return t.concat([t.tensor([0.]),constrained])
     
+    def restrict_diff(self,heights):
+        max_diff = 0.005
+        out = t.zeros(heights.shape[0])
+        out[0] = heights[0]
+        for i in range(heights.shape[0]-1):
+            diff = heights[i+1] - out[i]
+            out[i+1] = out[i] + self.restrict_output(diff,0,max_diff) + self.restrict_output(diff,-max_diff,0)-max_diff
+        return out
+
     def get_init_pulse(self):
         heights = self.init_heights()
-        return t.cumsum(self.restrict_diff(heights[1:] - heights[:-1]),0)
+        # return t.cumsum(self.restrict_diff(heights[1:] - heights[:-1]),0)
         # return t.cumsum(self.restrict_diff(heights),0)
+        return self.restrict_diff(heights)
     
     def get_control(self):
         # return t.cumsum(self.restrict_diff(self.heights),0)
-        return t.cumsum(self.restrict_diff(self.diffs),0)
+        # return t.cumsum(self.restrict_diff(self.diffs),0)
+        return self.restrict_diff(self.heights)
     
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
         # return 0.0*t.exp(-(self.times - self.T/2)**2/10)*t.sin(5*self.times)
-        return 0.15*t.sin(1*self.times)*t.exp(-(self.times - self.T/2)**2/100)*1000
+        return 0.0*t.sin(1*self.times)*t.exp(-(self.times - self.T/2)**2/100)
+    
+    def activation_func(self,time):
+        # decline_end = self.restrict_output(self.decline_end,0,self.T)
+        # ascend_start = self.restrict_output(self.ascend_start,0,self.T)
+        # level = self.restrict_output(self.level,0,1)
+
+        # left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        # right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        # return left_slope + right_slope + level
+        return self.alphas
+    
+    def init_activation_func(self,time):
+        decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
+        ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
+        level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
+
+        left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        return left_slope + right_slope + level
+        # return self.alphas
+    
+    def envelope_func(self):
+        return t.zeros(self.NTrot)
+    
+class FourierPulse():
+    def __init__(self):
+        # self.decline_end = t.nn.parameter.Parameter(t.tensor(self.params_dict['decline_end']))
+        # self.ascend_start = t.nn.parameter.Parameter(t.tensor(self.params_dict['ascend_start']))
+        # self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
+        self.alphas = self.init_activation_func(self.times)
+
+        amps, freqs, phases = self.init()
+        self.amps = t.nn.parameter.Parameter(amps)
+        self.freqs = t.nn.parameter.Parameter(freqs)
+        self.phases = t.nn.parameter.Parameter(phases)
+        super().__init__()
+    
+    def get_init_pulse(self):
+        amps, freqs, phases = self.init()
+        return (amps*t.sin(freqs*self.times + phases)).mean(0)
+    
+    def get_control(self):
+        return (self.amps*t.sin(self.freqs*self.times + self.phases)).mean(0)
+    
+    def init(self):
+        N = 5
+        # return t.zeros((N,1)), t.zeros((N,1)), t.zeros((N,1))
+        return t.rand((N,1))*0.1, t.rand((N,1))*10, t.rand((N,1))
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)
