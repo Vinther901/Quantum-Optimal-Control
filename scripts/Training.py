@@ -74,10 +74,12 @@ class Trainer():
         # self.occ = self.get_occupancy(indices=[0,1])
         return self.occ[2].mean()
     
-    def C8_gate(self,U):
-        occ0 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)])
-        occ1 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_ind=1)
-        return occ0[5:].sum(0).mean() + occ1[5:].sum(0).mean()
+    def C8_gate(self,U): #Should change 5 -> 6, consult the alpha dependent spectrum.
+        occ = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_inds=[0,1])
+        return occ[5:-1].sum(2).sum(0).mean()
+        # occ0 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)])
+        # occ1 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_ind=1)
+        # return occ0[5:].sum(0).mean() + occ1[5:].sum(0).mean()
     
     def loss_func(self,U):
         self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]

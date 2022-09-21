@@ -78,21 +78,27 @@ class Periodic_System():
         self.cos2_mat = 0.5*(t.exp(1j*self.phi_ext)*t.kron(lower,upper) + t.exp(-1j*self.phi_ext)*t.kron(upper,lower))
         return
     
-    def get_occupancy(self, indices = [0,1], init_ind = 0):
-        alphas = self.activation_func(self.times)
-        occ = t.zeros((len(indices)+1,self.NTrot))
+    #Made for only ETrotter atm, un-comment stuff for QTrotter
+    def get_occupancy(self, indices = [0,1], init_inds = [0]):
+        # alphas = self.activation_func(self.times)
+        occ = t.zeros((len(indices)+1,self.NTrot,len(init_inds)))
 
-        eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas.detach())) #This is probably what makes alpha regression slow
-        eigvecs = eigvecs[:,:self.subNHilbert].cfloat()
-        wavefunc = self.init_wavefuncs[:self.subNHilbert,[init_ind]]
+        # eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas.detach())) #This is probably what makes alpha regression slow
+        # eigvecs = eigvecs[:,:self.subNHilbert].cfloat()
+        wavefuncs = self.init_wavefuncs[:self.subNHilbert,init_inds]
+        # evolve = self.Id[:self.subNHilbert]
 
         ############TEST#######
         # print(((eigvecs[:-1].adjoint()@eigvecs[1:]).abs().diagonal(offset=0,dim1=-2,dim2=-1).sum(dim=-1)<self.NHilbert-0.1).sum())
+        
+        # energies = self.H0_term[:,[_ for _ in range(self.subNHilbert)],[_ for _ in range(self.subNHilbert)]].real
+        # sorted_inds = energies.sort().indices
         for i, mat in enumerate(self.latest_matrix_exp):
-            wavefunc = mat@wavefunc
+            wavefuncs = mat@wavefuncs
             for j, ind in enumerate(indices):
                     # occ[j,i] = t.abs(eigvecs[i,:,[ind]].adjoint()@wavefunc)
-                    occ[j,i] = t.abs(wavefunc[ind])
+                    occ[j,i] = t.abs(wavefuncs[ind])
+                    # occ[j,i] = t.abs(wavefuncs[sorted_inds[i,ind]])
 
 
         # try:
@@ -124,7 +130,7 @@ class Periodic_System():
             
         occ = t.square(occ)
         occ[len(indices)] = 1-occ.sum(0)
-        return occ
+        return occ.squeeze()
     
     # def restrict_time(self, time_point):
     #     return self.Softplus(time_point) - self.Softplus(time_point - self.T)
