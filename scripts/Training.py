@@ -47,7 +47,7 @@ class Trainer():
     def C1_state(self,U):
         return 1 - t.square(t.abs(self.target_state_adj@U@self.init_wavefuncs[:self.subNHilbert,[0]])).squeeze()
     
-    def C1_gate(self,U):
+    def C1_gate(self,U): #Perhaps do weighted sum instead of dim<subNHilbert
         # transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]
         # wavefunc = U@self.init_wavefuncs[:self.subNHilbert]
         # return 1 - 1/self.subNHilbert**2*t.square(t.abs(t.trace(self.target_gate_adj@U)))
@@ -74,12 +74,16 @@ class Trainer():
         # self.occ = self.get_occupancy(indices=[0,1])
         return self.occ[2].mean()
     
+    def C7_gate(self,U): #occupation[Bra,t,Ket]
+        self.occ = self.get_occupancy(indices=[0,1],init_inds=[0,1])
+        return 1 - self.occ[1,:,0].mean() + 1 - self.occ[0,:,1].mean()
+    
     def C8_gate(self,U): #Should change 5 -> 6, consult the alpha dependent spectrum.
-        occ = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_inds=[0,1])
-        return occ[5:-1].sum(2).sum(0).mean()
-        # occ0 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)])
-        # occ1 = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_ind=1)
-        # return occ0[5:].sum(0).mean() + occ1[5:].sum(0).mean()
+        #Perhaps it is enough to minimize only what is missing from the first 5/6
+        #Instead of minimize every occupation from 5/6 and up.
+        return self.occ[-1].mean(0).sum()
+        # occ = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_inds=[0,1])
+        # return occ[5:-1].sum(2).sum(0).mean()
     
     def loss_func(self,U):
         self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]

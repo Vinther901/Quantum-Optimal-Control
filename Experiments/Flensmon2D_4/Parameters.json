@@ -5,7 +5,7 @@
 "lr": 		3e-4,
 "Scheduler":	true,
 "loss_funcs":	["C1_gate","C7_gate"],
-"subNHilbert":  19,
+"subNHilbert":  20,
 "dim":          "2d",
 
 "_SystemComments":"The following are the specifications for the 1DFlensmon, with respectively: 0.997*pi, 2*pi*10GHz and EJ/100",
@@ -16,7 +16,7 @@
 
 "decline_end":	10.0,
 "ascend_start":	20.0,
-"level":	0.5,
+"level":	1.0,
 "envelope_amp":	0.2397,
 "detuning":	0.2956,
 "phase":	1.7529

@@ -4,7 +4,7 @@
 "q_max": 	10,
 "lr": 		3e-4,
 "Scheduler":	true,
-"loss_funcs":	["C1_gate","C7_gate"],
+"loss_funcs":	["C1_gate","C7_gate","C8_gate"],
 "subNHilbert":  19,
 "dim":          "2d",
 
@@ -14,8 +14,8 @@
 "EJ": 		62.83185307179586,
 "EC": 		0.6283185307179586,
 
-"decline_end":	10.0,
-"ascend_start":	20.0,
+"decline_end":	2.5,
+"ascend_start":	5.0,
 "level":	0.5,
 "envelope_amp":	0.2397,
 "detuning":	0.2956,
