@@ -77,7 +77,7 @@ class ETrotter():
         return UE0s[:,1:], UE0s[:-1,0]
     
     def clean_basis(self,U0s,E0s):
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         # NHilbert = self.NHilbert**int(self.params_dict['dim'][0])
         dim = self.subNHilbert
         # inds = [_ for _ in range(dim)]
