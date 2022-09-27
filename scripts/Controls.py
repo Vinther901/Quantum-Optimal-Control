@@ -45,6 +45,7 @@ class RampDownUpPulse():
         left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
         right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
         return left_slope + right_slope + level
+
     
     def get_init_pulse(self):
         decline_end = t.tensor(self.params_dict['decline_end'])
@@ -115,7 +116,7 @@ class ConstrainedPulse():
         # self.decline_end = t.nn.parameter.Parameter(t.tensor(self.params_dict['decline_end']))
         # self.ascend_start = t.nn.parameter.Parameter(t.tensor(self.params_dict['ascend_start']))
         # self.level = t.nn.parameter.Parameter(t.tensor(self.params_dict['level']))
-        self.alphas = self.init_activation_func(self.times)
+        # self.alphas = self.init_activation_func(self.times)
 
         self.heights = t.nn.parameter.Parameter(self.init_heights())#.to(self.device)
         # heights = self.init_heights()
@@ -157,7 +158,8 @@ class ConstrainedPulse():
     def init_heights(self):
         # return 0.5*t.exp(-(self.times - self.T/2)**2/20)
         # return 0.0*t.exp(-(self.times - self.T/2)**2/10)*t.sin(5*self.times)
-        return 0.0*t.sin(1*self.times)*t.exp(-(self.times - self.T/2)**2/100)
+        # return 0.0*t.sin(1*self.times)*t.exp(-(self.times - self.T/2)**2/100)
+        return 0.*t.sin(2*t.pi/30*self.times)*t.cos(5*2*t.pi/30*self.times) #0.1
     
     def activation_func(self,time):
         # decline_end = self.restrict_output(self.decline_end,0,self.T)
@@ -170,18 +172,68 @@ class ConstrainedPulse():
         return self.alphas
     
     def init_activation_func(self,time):
-        decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
-        ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
-        level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
+        # decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
+        # ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
+        # level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
 
-        left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
-        right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
-        return left_slope + right_slope + level
+        # left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        # right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        # return left_slope + right_slope + level
+        alphas = t.sin(time)*t.exp(-(time-15)**2/10) + t.exp(-time/3) + t.exp(-(30 - time)/3)
+        alphas = alphas - alphas.min()
+        alphas = alphas/alphas.max()/2
+        alphas = alphas + 0.5
+        return alphas
         # return self.alphas
     
     def envelope_func(self):
         return t.zeros(self.NTrot)
+
+class ConstrainedAlpha():
+    def __init__(self):
+        self.alphas = t.nn.parameter.Parameter(self.init_activation_func(self.times[1:-1]))
+        super().__init__()
     
+    def restrict_diff(self,heights):
+        max_diff = 0.01
+        out = t.zeros(heights.shape[0])
+        out[0] = heights[0]
+        for i in range(heights.shape[0]-1):
+            diff = heights[i+1] - out[i]
+            out[i+1] = out[i] + self.restrict_output(diff,0,max_diff) + self.restrict_output(diff,-max_diff,0)-max_diff
+        return out
+    
+    def get_init_pulse(self):
+        return self.init_heights()
+
+    def get_control(self):
+        return self.init_heights()
+
+    def init_heights(self):
+        return t.zeros_like(self.times)
+    
+    def activation_func(self,time):
+        # return self.restrict_output(self.restrict_diff(self.alphas),0.5,1) + 0.5
+        one = t.tensor([1.])
+        return t.concat([one,self.restrict_output(self.alphas,0.5,1)+0.5,one])
+    
+    def init_activation_func(self,time):
+        # decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
+        # ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
+        # level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
+
+        # left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        # right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        # return left_slope + right_slope + level
+        alphas = t.sin(time)*t.exp(-(time-15)**2/10) + t.exp(-time/3) + t.exp(-(30 - time)/3)
+        alphas = alphas - alphas.min()
+        alphas = alphas/alphas.max()/2
+        alphas = alphas + 0.5
+        return self.restrict_output(self.restrict_diff(alphas),0.5,1) + 0.5
+    
+    def envelope_func(self):
+        return t.zeros(self.NTrot)
+
 class FourierPulse():
     def __init__(self):
         # self.decline_end = t.nn.parameter.Parameter(t.tensor(self.params_dict['decline_end']))

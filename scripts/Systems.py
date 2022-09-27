@@ -85,7 +85,8 @@ class Periodic_System():
 
         # eigvals, eigvecs = t.linalg.eigh(self.get_H(alphas=alphas.detach())) #This is probably what makes alpha regression slow
         # eigvecs = eigvecs[:,:self.subNHilbert].cfloat()
-        wavefuncs = self.init_wavefuncs[:self.subNHilbert,init_inds]
+        # wavefuncs = self.init_wavefuncs[:self.subNHilbert,init_inds]
+        wavefuncs = self.init_wavefuncs[:,init_inds]
         # evolve = self.Id[:self.subNHilbert]
 
         ############TEST#######

@@ -34,7 +34,7 @@ class ETrotter():
         # U0s = U0s[:-1,:,:self.subNHilbert]
         U0s = U0s[:-1]
         self.UdVU = U0s.adjoint()@self.q_mat@U0s
-        self.init_wavefuncs = U0s[0].adjoint()@self.eigvecs
+        self.init_wavefuncs = (U0s[0].adjoint()@self.eigvecs)[:self.subNHilbert]
 
         # self.H0_term = self.H0_term[::2]
         # self.UdVU = self.UdVU[::2]
@@ -110,6 +110,27 @@ class ETrotter():
     # def _get_H2(self,alphas=t.tensor([1]),control = t.tensor([0])):
     #     # assert type(alpha) == t.Tensor
     #     return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+
+class SavedBasis():
+    def __init__(self):
+        import os
+        dir_path = os.path.dirname(os.getcwd())
+        basis_path = os.path.join(dir_path,"OptimizationIdeas","OptimBasis_30States.pt")
+        self.basis = t.load(basis_path)
+        
+        self.cos_mat = self.basis.adjoint()@self.cos_mat@self.basis
+        self.cos2_mat = self.basis.adjoint()@self.cos2_mat@self.basis
+        self.q_mat = self.basis.adjoint()@self.q_mat@self.basis
+        self.KinE = self.basis.adjoint()@self.KinE@self.basis
+
+        self.init_wavefuncs = self.basis.adjoint()@self.eigvecs
+
+        super().__init__()
+    
+    def get_H(self,alphas=t.tensor([1]),control = t.tensor([0])):
+        return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
+    
+
 
 class ETrotter3():
     def __init__(self):

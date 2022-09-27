@@ -43,6 +43,7 @@ class Trainer():
         tmp[1,0] = 1
         tmp[1,1] = 0
         self.target_gate_adj = tmp.adjoint()
+        # self.basis_change = self.basis.adjoint()@self.eigvecs[:,:self.subNHilbert]
 
     def C1_state(self,U):
         return 1 - t.square(t.abs(self.target_state_adj@U@self.init_wavefuncs[:self.subNHilbert,[0]])).squeeze()
@@ -51,8 +52,11 @@ class Trainer():
         # transformed = (self.eigvecs.adjoint()@U@self.eigvecs)[:self.subNHilbert,:self.subNHilbert]
         # wavefunc = U@self.init_wavefuncs[:self.subNHilbert]
         # return 1 - 1/self.subNHilbert**2*t.square(t.abs(t.trace(self.target_gate_adj@U)))
-        dim = 3#self.subNHilbert
-        return 1 - 1/dim**2*t.square(t.abs(t.trace(self.target_gate_adj[:dim]@U[:,:dim])))
+        # transformed = self.basis_change.adjoint()@U@self.basis_change
+        transformed = U
+
+        dim = 2#self.subNHilbert
+        return 1 - 1/dim**2*t.square(t.abs(t.trace(self.target_gate_adj[:dim]@transformed[:,:dim])))
 
     # def C2(self,U):
     #     return t.square(self.ascend_start - self.decline_end)
@@ -85,6 +89,11 @@ class Trainer():
         # occ = self.get_occupancy(indices=[_ for _ in range(self.subNHilbert)],init_inds=[0,1])
         # return occ[5:-1].sum(2).sum(0).mean()
     
+    def C4_gate(self,U):
+        alphas = self.activation_func(None)
+        diff = (alphas[1:] - alphas[:-1])/0.01
+        return t.mean(diff**50)
+
     def loss_func(self,U):
         self.losses = t.hstack([loss_func(U) for loss_func in self.loss_funcs])#/self.stored_losses[:,0]
         self.update_weights()
