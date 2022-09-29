@@ -4,7 +4,7 @@
 "q_max": 	10,
 "lr": 		3e-4,
 "Scheduler":	true,
-"loss_funcs":	["C1_gate"],
+"loss_funcs":	["C1_gate", "C4_gate"],
 "subNHilbert":  19,
 "dim":          "2d",
 

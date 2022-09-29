@@ -225,11 +225,14 @@ class ConstrainedAlpha():
         # left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
         # right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
         # return left_slope + right_slope + level
-        alphas = t.sin(time)*t.exp(-(time-15)**2/10) + t.exp(-time/3) + t.exp(-(30 - time)/3)
-        alphas = alphas - alphas.min()
-        alphas = alphas/alphas.max()/2
-        alphas = alphas + 0.5
-        return self.restrict_output(self.restrict_diff(alphas),0.5,1) + 0.5
+
+        # alphas = t.sin(time)*t.exp(-(time-15)**2/10) + t.exp(-time/3) + t.exp(-(30 - time)/3)
+        # alphas = alphas - alphas.min()
+        # alphas = alphas/alphas.max()/2
+        # alphas = alphas + 0.5
+        # return self.restrict_output(self.restrict_diff(alphas),0.5,1) + 0.5
+
+        return time*(time-self.T)/500+1
     
     def envelope_func(self):
         return t.zeros(self.NTrot)
