@@ -183,6 +183,8 @@ class ConstrainedPulse():
         alphas = alphas - alphas.min()
         alphas = alphas/alphas.max()/2
         alphas = alphas + 0.5
+        # print("Setting self.alphas")
+        # self.alphas = alphas
         return alphas
         # return self.alphas
     
@@ -218,13 +220,13 @@ class ConstrainedAlpha():
         return t.concat([one,self.restrict_output(self.alphas,0.5,1)+0.5,one])
     
     def init_activation_func(self,time):
-        # decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
-        # ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
-        # level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
+        decline_end = self.restrict_output(t.tensor(self.params_dict['decline_end']),0,self.T)
+        ascend_start = self.restrict_output(t.tensor(self.params_dict['ascend_start']),0,self.T)
+        level = self.restrict_output(t.tensor(self.params_dict['level']),0,1)
 
-        # left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
-        # right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
-        # return left_slope + right_slope + level
+        left_slope = self.ReLU(1-level - (1-level)/decline_end*time)
+        right_slope = self.ReLU((1-level)/(self.T - ascend_start)*(time - ascend_start))
+        return left_slope + right_slope + level
 
         # alphas = t.sin(time)*t.exp(-(time-15)**2/10) + t.exp(-time/3) + t.exp(-(30 - time)/3)
         # alphas = alphas - alphas.min()
@@ -232,7 +234,7 @@ class ConstrainedAlpha():
         # alphas = alphas + 0.5
         # return self.restrict_output(self.restrict_diff(alphas),0.5,1) + 0.5
 
-        return time*(time-self.T)/500+1
+        # return time*(time-self.T)/500+1
     
     def envelope_func(self):
         return t.zeros(self.NTrot)

@@ -26,8 +26,18 @@ class ETrotter():
         
         # U0s = U0s[:,:,:self.subNHilbert]
 
-        U0dot_tmp = U0s[1:].adjoint()@U0s[:-1]
-        U0dot = 1/(2*self.dt)*(U0dot_tmp - U0dot_tmp.adjoint())
+        # U0dot_tmp = U0s[1:].adjoint()@U0s[:-1]
+        # U0dot = 1/(2*self.dt)*(U0dot_tmp - U0dot_tmp.adjoint())
+        Fs = -1/(E0s.unsqueeze(2) - E0s.unsqueeze(1))
+        diag_inds = [_ for _ in range(self.subNHilbert)]
+        Fs[:,diag_inds,diag_inds] = 0
+        # alphas = t.concat([self.alphas,t.tensor([1.])])
+        # U0dot = Fs*(U0s[:-1].adjoint()@(self.EJ*self.cos2_mat)@U0s[:-1])*(alphas[1:]-alphas[:-1]).view(-1,1,1)/self.dt
+        alphas = t.concat([t.tensor([1.]),self.alphas,t.tensor([1.])])
+        U0dot = Fs*(U0s[:-1].adjoint()@(self.EJ*self.cos2_mat)@U0s[:-1])*(alphas[2:]-alphas[:-2]).view(-1,1,1)/(2*self.dt)
+        # U0s = t.concat([U0s[[0]],U0s],dim=0)
+        # U0dot = 1/(8*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[2:] +2*U0s[1:-1]+ U0s[:-2])
+
         # self.H0_term = t.diag_embed(E0s[:,:self.subNHilbert]) + 1j*U0dot
         self.H0_term = t.diag_embed(E0s) + 1j*U0dot
         # self.H0_term = self.H0_term[:,:self.subNHilbert,:self.subNHilbert]
@@ -52,18 +62,21 @@ class ETrotter():
         control = t.zeros(self.NTrot)
         bitesize = 100
         bites = t.arange(0,self.NTrot+bitesize,bitesize)
-        U0s = t.zeros((self.NTrot+1,self.NHilbert**int(self.params_dict['dim'][0]),self.subNHilbert)).cfloat()
-        E0s = t.zeros((self.NTrot+1,self.subNHilbert)).float()
+        U0s = t.zeros((self.NTrot,self.NHilbert**int(self.params_dict['dim'][0]),self.subNHilbert)).cfloat()
+        E0s = t.zeros((self.NTrot,self.subNHilbert)).float()
 
         for i in tqdm(range(bites.shape[0]-1)):
-            H0 = self.KinE.repeat((bitesize,1,1)) + self.V(alphas=alphas[bites[i]:bites[i+1]],control=control[bites[i]:bites[i+1]])
+            # alphas[bites[i]:bites[i+1]]
+            H0 = self.KinE + self.V(alphas=alphas[bites[i]:bites[i+1]],control=control[bites[i]:bites[i+1]])
             E0, U0 = t.linalg.eigh(H0)
             U0s[bites[i]:bites[i+1]] = U0[:,:,:self.subNHilbert]
             E0s[bites[i]:bites[i+1]] = E0[:,:self.subNHilbert]
         
-        U0s[-1] = U0[-1,:,:self.subNHilbert]
-        E0s[-1] = E0[-1,:self.subNHilbert]
-        U0s, E0s = self.clean_basis(U0s,E0s.cfloat())
+        # U0s[-1] = U0[-1,:,:self.subNHilbert]
+        # E0s[-1] = E0[-1,:self.subNHilbert]
+        U0s = t.concat([U0s,U0[[-1],:,:self.subNHilbert]],dim=0)
+        E0s = t.concat([E0s,E0[[-1],:self.subNHilbert]],dim=0)
+        U0s, E0s = self.clean_basis(U0s,E0s.cfloat(),t.concat([alphas,t.tensor([1.])],dim=0))
 
         UE0s = t.concat([E0s.unsqueeze(1),U0s],1)
 
@@ -76,27 +89,37 @@ class ETrotter():
         UE0s = t.load(os.path.join(self.params_dict['exp_path'],filename))
         return UE0s[:,1:], UE0s[:-1,0]
     
-    def clean_basis(self,U0s,E0s):
+    def clean_basis(self,U0s,E0s,alphas):
         # import matplotlib.pyplot as plt
         # NHilbert = self.NHilbert**int(self.params_dict['dim'][0])
         dim = self.subNHilbert
         # inds = [_ for _ in range(dim)]
         threshold = 0.70710678118 #sqrt(0.5)
+        sorted_inds = t.sort(-alphas).indices
         for i in range(U0s.shape[0]-1):
-            tmp = U0s[i+1].adjoint()@U0s[i]
-
-            # mask = tmp.abs().max(0).indices
-            # perm = t.zeros(dim,dim,dtype=t.cfloat)
-            # perm[mask,inds] = 1
-            # print(perm.real.sum(0),perm.real.sum(1))
+            tmp = U0s[sorted_inds[i+1]].adjoint()@U0s[sorted_inds[i]]
             perm = (tmp.abs()>=threshold).cfloat()
             assert perm.real.sum() == dim, f"Permutation matrix not Unitary, got {perm.real.sum()}, for step {i}. \n Try using a different subNHilbert."
-            U0s[i+1] = U0s[i+1]@perm
-            E0s[i+1] = E0s[i+1]@perm
+            U0s[sorted_inds[i+1]] = U0s[sorted_inds[i+1]]@perm
+            E0s[sorted_inds[i+1]] = E0s[sorted_inds[i+1]]@perm
 
-            tmp = U0s[i+1].adjoint()@U0s[i]
+            tmp = U0s[sorted_inds[i+1]].adjoint()@U0s[sorted_inds[i]]
             angle = tmp.diagonal().angle()
-            U0s[i+1] = U0s[i+1]*t.exp(+1j*angle)
+            U0s[sorted_inds[i+1]] = U0s[sorted_inds[i+1]]*t.exp(+1j*angle)
+            # tmp = U0s[i+1].adjoint()@U0s[i]
+
+            # # mask = tmp.abs().max(0).indices
+            # # perm = t.zeros(dim,dim,dtype=t.cfloat)
+            # # perm[mask,inds] = 1
+            # # print(perm.real.sum(0),perm.real.sum(1))
+            # perm = (tmp.abs()>=threshold).cfloat()
+            # assert perm.real.sum() == dim, f"Permutation matrix not Unitary, got {perm.real.sum()}, for step {i}. \n Try using a different subNHilbert."
+            # U0s[i+1] = U0s[i+1]@perm
+            # E0s[i+1] = E0s[i+1]@perm
+
+            # tmp = U0s[i+1].adjoint()@U0s[i]
+            # angle = tmp.diagonal().angle()
+            # U0s[i+1] = U0s[i+1]*t.exp(+1j*angle)
         return U0s, E0s
 
     def get_H(self,alphas=t.tensor([1]), control=t.tensor([0])):
@@ -136,7 +159,7 @@ class ETrotter3():
     def __init__(self):
         from tqdm import tqdm
         # import numpy as np
-        extra = 40
+        extra = 1
         times = t.linspace(0,self.T,self.NTrot + (self.NTrot-1)*extra)
         H0 = self.KinE.repeat((times.shape[0],1,1)) + self.V(alphas=self.init_activation_func(times),control=t.zeros(times.shape[0]))
         # H0 = self.KinE.repeat((self.NTrot,1,1)) + self.V(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
@@ -144,7 +167,7 @@ class ETrotter3():
         # H0 = self.get_H(alphas=self.activation_func(self.times),control=t.zeros(self.NTrot))
 
         E0s = t.linalg.eigvalsh(H0)
-        Fs = 1/(E0s.unsqueeze(2) - E0s.unsqueeze(1))
+        Fs = -1/(E0s.unsqueeze(2) - E0s.unsqueeze(1))
         self.E0s = E0s
 
         # E0s = np.linalg.eigvalsh(H0).astype(np.float64)
