@@ -142,6 +142,12 @@ class Periodic_System():
     # def custom_Hardsigmoid(self,x): #restrict linearly to [0,1]
     #     return self.Hardsigmoid(6*(x-0.5)) #Perhaps should be restricted to [0.5,1]
 
-    def Print(statement):
+    def Print(self,statement):
         from time import localtime, strftime
         print("{} - {}".format(strftime("%H:%M:%S", localtime()),statement))
+    
+    def lin_interpolate(self,vals):
+        out = t.zeros(vals.shape[0]*2-1)
+        out[::2] = vals
+        out[1::2] = 0.5*(vals[1:] + vals[:-1])
+        return out
