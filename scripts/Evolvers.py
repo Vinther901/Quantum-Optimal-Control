@@ -26,15 +26,15 @@ class ETrotter():
         
         # U0s = U0s[:,:,:self.subNHilbert]
 
-        # U0dot_tmp = U0s[1:].adjoint()@U0s[:-1]
-        # U0dot = 1/(2*self.dt)*(U0dot_tmp - U0dot_tmp.adjoint())
-        Fs = -1/(E0s.unsqueeze(2) - E0s.unsqueeze(1))
-        diag_inds = [_ for _ in range(self.subNHilbert)]
-        Fs[:,diag_inds,diag_inds] = 0
+        U0dot_tmp = U0s[1:].adjoint()@U0s[:-1]
+        U0dot = 1/(2*self.dt)*(U0dot_tmp - U0dot_tmp.adjoint())
+        # Fs = -1/(E0s.unsqueeze(2) - E0s.unsqueeze(1))
+        # diag_inds = [_ for _ in range(self.subNHilbert)]
+        # Fs[:,diag_inds,diag_inds] = 0
         # alphas = t.concat([self.alphas,t.tensor([1.])])
         # U0dot = Fs*(U0s[:-1].adjoint()@(self.EJ*self.cos2_mat)@U0s[:-1])*(alphas[1:]-alphas[:-1]).view(-1,1,1)/self.dt
-        alphas = t.concat([t.tensor([1.]),self.alphas,t.tensor([1.])])
-        U0dot = Fs*(U0s[:-1].adjoint()@(self.EJ*self.cos2_mat)@U0s[:-1])*(alphas[2:]-alphas[:-2]).view(-1,1,1)/(2*self.dt)
+        # alphas = t.concat([t.tensor([1.]),self.alphas,t.tensor([1.])])
+        # U0dot = Fs*(U0s[:-1].adjoint()@(self.EJ*self.cos2_mat)@U0s[:-1])*(alphas[2:]-alphas[:-2]).view(-1,1,1)/(2*self.dt)
         # U0s = t.concat([U0s[[0]],U0s],dim=0)
         # U0dot = 1/(8*self.dt)*(U0s[2:].adjoint() - U0s[:-2].adjoint())@(U0s[2:] +2*U0s[1:-1]+ U0s[:-2])
 
