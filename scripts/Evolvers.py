@@ -152,7 +152,6 @@ class SavedBasis():
     
     def get_H(self,alphas=t.tensor([1]),control = t.tensor([0])):
         return self.KinE.repeat((alphas.shape[0],1,1)) + self.V(alphas=alphas,control=control)
-    
 
 
 class ETrotter3():
