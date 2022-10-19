@@ -2,7 +2,7 @@
 "T": 		30,
 "NTrot": 	1000,
 "q_max": 	10,
-"lr": 		3e-3,
+"lr": 		1e-2,
 "Scheduler":	true,
 "loss_funcs":	["C1_gate"],
 "subNHilbert":  19,
@@ -17,7 +17,7 @@
 "decline_end":	10.0,
 "ascend_start":	20.0,
 "level":	0.7,
-"envelope_amp":	0.2254,
-"detuning":	0.4555,
-"phase":	0.6206
+"envelope_amp":	0.0214,
+"detuning":	0.8407,
+"phase":	0.7
 }

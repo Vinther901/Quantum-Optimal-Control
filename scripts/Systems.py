@@ -69,7 +69,7 @@ class Periodic_System():
         self.eigvecs = eigvecs.cfloat()
     
     def prepare_2d(self):
-        self.q_mat = t.kron(self.q_mat,self.Id) + t.kron(self.Id,self.q_mat)
+        self.q_mat = t.kron(self.q_mat,self.Id) #+ t.kron(self.Id,self.q_mat)
 
         self.cos_mat = t.kron(self.cos_mat,self.Id) + t.kron(self.Id,self.cos_mat)
 

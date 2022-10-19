@@ -93,7 +93,7 @@ class Plotter():
                     title="Occupation (optimized pulse)")
 
         self.latest_matrix_exp = t.matrix_exp(-1j*self.dt*self.get_H(self.activation_func(self.times),self.get_init_pulse()))
-        ax[1,0].plot(self.times, self.get_occupancy().detach().T,label=["$\psi_0$","$\psi_1$","$\psi_{rest}$"])
+        ax[1,0].plot(self.times, self.get_occupancy().detach().T)#,label=["$\\psi_0$","$\\psi_1$","$\\psi_{rest}$"])
         _ = self()
         ax[1,0].legend()
         ax[1,0].set(xlabel="Time [ns]",
