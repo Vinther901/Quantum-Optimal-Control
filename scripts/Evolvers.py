@@ -28,6 +28,7 @@ class ETrotter():
 
         U0dot_tmp = U0s[1:].adjoint()@U0s[:-1]
         U0dot = 1/(2*self.dt)*(U0dot_tmp - U0dot_tmp.adjoint())
+        # U0dot = (U0dot_tmp - U0dot_tmp.adjoint())/2
         # Fs = -1/(E0s.unsqueeze(2) - E0s.unsqueeze(1))
         # diag_inds = [_ for _ in range(self.subNHilbert)]
         # Fs[:,diag_inds,diag_inds] = 0
@@ -40,6 +41,7 @@ class ETrotter():
 
         # self.H0_term = t.diag_embed(E0s[:,:self.subNHilbert]) + 1j*U0dot
         self.H0_term = t.diag_embed(E0s) + 1j*U0dot
+        # self.U0dot = U0dot
         # self.H0_term = self.H0_term[:,:self.subNHilbert,:self.subNHilbert]
         # U0s = U0s[:-1,:,:self.subNHilbert]
         U0s = U0s[:-1]
