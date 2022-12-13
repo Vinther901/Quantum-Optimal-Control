@@ -1,0 +1,20 @@
+name = "MyJuliaEnv"
+uuid = "b15e27f8-5ded-4cde-933c-4fdcfaf00020"
+authors = ["JonasVinther <47058182+Vinther901@users.noreply.github.com>"]
+version = "0.1.0"
+
+[deps]
+Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DiffEqFlux = "aae7a2af-3d4f-5e19-a356-7da93b79d9d0"
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+FastExpm = "7868e603-8603-432e-a1a1-694bd70b01f2"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+SciMLSensitivity = "1ed8b502-d754-442c-8d5d-10ac956f44a1"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
