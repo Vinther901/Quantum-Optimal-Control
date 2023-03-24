@@ -1,0 +1,17 @@
+ls: infidelity (not quite consistent for the first files)
+l1s: integrated leakage
+l2s: gradient wrt. phi
+
+m0: no robustness input.
+mx: m = 1e-x/pi
+
+It seems that when straightforwardly adding the time-averaged leakage it doesn't find a true robust minimum.
+However it seems to achieve a lower final infidelity than for m0.
+
+mm: both grad and integrated leakage receive m-factor.
+mm20: m = 1e-2/pi and l1sscale = 0 ie, no integrated leakage term.
+mmxx_1: The new parametrization, where the amplitude is not A/(Delta t) but just A.
+
+
+Which use p0 = 2.0, 10.0, 10.0,  0.7,  0.0,  2.5,  0.1,  0.995pi,  0.0
+m3_1, mm30_1, mm33_1, mm30, mm33, mm20 (uden tmp_..)
