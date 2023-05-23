@@ -1,5 +1,5 @@
 # Robust Quantum Optimal Control via The Adjoint Method
-My Master's Thesis can be found as a pdf.
+My Master's Thesis can be found as a pdf in the main foulder as `Master_Thesis_Final.pdf`
 
 # Quantum-Optimal-Control
 
