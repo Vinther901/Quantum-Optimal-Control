@@ -1,3 +1,6 @@
+# Robust Quantum Optimal Control via The Adjoint Method
+My Master's Thesis can be found as a pdf.
+
 # Quantum-Optimal-Control
 
 The original setup of this project was to have the legwork of the code contained in the folder `scripts`
